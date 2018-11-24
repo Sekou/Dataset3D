@@ -44,11 +44,15 @@ namespace Dataset3D
             using (StringWriter sw = new StringWriter(sb))
             {
                 var xml = new XmlTextWriter(sw);
+                xml.Formatting = Formatting.Indented;
+
                 xml.WriteStartElement("annotation");
 
                 el(xml, "folder", folder);
 
                 el(xml, "filename", filename);
+
+                el(xml, "segmented", 0);
 
                 xml.WriteStartElement("size");
                 el(xml, "width", img_width);

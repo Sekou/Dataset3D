@@ -103,7 +103,7 @@ namespace Dataset3D
 
             var infos = new List<ObjectRegion>();
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < (int)nud_nobj.Value; i++)
             {
                 var obj = DrawObj(sz_real);
                 infos.Add(obj);

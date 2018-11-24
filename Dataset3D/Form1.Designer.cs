@@ -46,9 +46,12 @@
             this.control3D1 = new OpenTK.Extra.Control3D();
             this.rb_simple = new System.Windows.Forms.RadioButton();
             this.rb_xml = new System.Windows.Forms.RadioButton();
+            this.nud_nobj = new System.Windows.Forms.NumericUpDown();
+            this.label5 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.nud_tint)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_max_images)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_ptex)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nud_nobj)).BeginInit();
             this.SuspendLayout();
             // 
             // timer1
@@ -59,10 +62,11 @@
             // 
             // rtb_regions
             // 
-            this.rtb_regions.Location = new System.Drawing.Point(115, 482);
+            this.rtb_regions.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.rtb_regions.Location = new System.Drawing.Point(779, 9);
             this.rtb_regions.Margin = new System.Windows.Forms.Padding(4);
             this.rtb_regions.Name = "rtb_regions";
-            this.rtb_regions.Size = new System.Drawing.Size(724, 180);
+            this.rtb_regions.Size = new System.Drawing.Size(348, 469);
             this.rtb_regions.TabIndex = 1;
             this.rtb_regions.Text = "";
             // 
@@ -102,7 +106,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(14, 672);
+            this.label1.Location = new System.Drawing.Point(14, 488);
             this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(76, 17);
@@ -111,11 +115,11 @@
             // 
             // rtb_folder
             // 
-            this.rtb_folder.Location = new System.Drawing.Point(115, 670);
+            this.rtb_folder.Location = new System.Drawing.Point(115, 486);
             this.rtb_folder.Margin = new System.Windows.Forms.Padding(4);
             this.rtb_folder.Multiline = false;
             this.rtb_folder.Name = "rtb_folder";
-            this.rtb_folder.Size = new System.Drawing.Size(724, 25);
+            this.rtb_folder.Size = new System.Drawing.Size(660, 25);
             this.rtb_folder.TabIndex = 6;
             this.rtb_folder.Text = "D:\\Dataset3D";
             // 
@@ -230,7 +234,7 @@
             this.control3D1.Location = new System.Drawing.Point(115, 9);
             this.control3D1.Margin = new System.Windows.Forms.Padding(0);
             this.control3D1.Name = "control3D1";
-            this.control3D1.Size = new System.Drawing.Size(724, 469);
+            this.control3D1.Size = new System.Drawing.Size(660, 469);
             this.control3D1.TabIndex = 11;
             this.control3D1.VSync = false;
             this.control3D1.Load += new System.EventHandler(this.control3D1_Load);
@@ -238,30 +242,65 @@
             // rb_simple
             // 
             this.rb_simple.AutoSize = true;
-            this.rb_simple.Checked = true;
-            this.rb_simple.Location = new System.Drawing.Point(17, 487);
+            this.rb_simple.Location = new System.Drawing.Point(866, 488);
             this.rb_simple.Name = "rb_simple";
             this.rb_simple.Size = new System.Drawing.Size(87, 21);
             this.rb_simple.TabIndex = 14;
-            this.rb_simple.TabStop = true;
             this.rb_simple.Text = "YOLO v3";
             this.rb_simple.UseVisualStyleBackColor = true;
             // 
             // rb_xml
             // 
             this.rb_xml.AutoSize = true;
-            this.rb_xml.Location = new System.Drawing.Point(17, 514);
+            this.rb_xml.Checked = true;
+            this.rb_xml.Location = new System.Drawing.Point(1001, 488);
             this.rb_xml.Name = "rb_xml";
             this.rb_xml.Size = new System.Drawing.Size(57, 21);
             this.rb_xml.TabIndex = 15;
+            this.rb_xml.TabStop = true;
             this.rb_xml.Text = "XML";
             this.rb_xml.UseVisualStyleBackColor = true;
+            // 
+            // nud_nobj
+            // 
+            this.nud_nobj.Location = new System.Drawing.Point(14, 385);
+            this.nud_nobj.Margin = new System.Windows.Forms.Padding(4);
+            this.nud_nobj.Maximum = new decimal(new int[] {
+            10,
+            0,
+            0,
+            0});
+            this.nud_nobj.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.nud_nobj.Name = "nud_nobj";
+            this.nud_nobj.Size = new System.Drawing.Size(79, 22);
+            this.nud_nobj.TabIndex = 17;
+            this.nud_nobj.Value = new decimal(new int[] {
+            3,
+            0,
+            0,
+            0});
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(14, 364);
+            this.label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(70, 17);
+            this.label5.TabIndex = 16;
+            this.label5.Text = "N Objects";
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(852, 703);
+            this.ClientSize = new System.Drawing.Size(1146, 523);
+            this.Controls.Add(this.nud_nobj);
+            this.Controls.Add(this.label5);
             this.Controls.Add(this.rb_xml);
             this.Controls.Add(this.rb_simple);
             this.Controls.Add(this.nud_ptex);
@@ -285,6 +324,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.nud_tint)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_max_images)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_ptex)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nud_nobj)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -308,6 +348,8 @@
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.RadioButton rb_simple;
         private System.Windows.Forms.RadioButton rb_xml;
+        private System.Windows.Forms.NumericUpDown nud_nobj;
+        private System.Windows.Forms.Label label5;
     }
 }
 

@@ -8,6 +8,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Dataset3D
 {
@@ -185,7 +186,10 @@ namespace Dataset3D
             GL.GetInteger(GetPName.Viewport, viewport);
 
             var or = new ObjectRegion();
-            or.name = ""+type;
+
+            var name = obj_keys[type];
+            //name = Regex.Replace(name, @"^[\d]+[_\-]", "");
+            or.name = ""+name;
 
             var kx = width3d * k_3d_to_px;
             var ky = width3d * k_3d_to_px;
