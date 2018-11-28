@@ -48,6 +48,7 @@
             this.rb_xml = new System.Windows.Forms.RadioButton();
             this.nud_nobj = new System.Windows.Forms.NumericUpDown();
             this.label5 = new System.Windows.Forms.Label();
+            this.cb_depth = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.nud_tint)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_max_images)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_ptex)).BeginInit();
@@ -294,11 +295,23 @@
             this.label5.TabIndex = 16;
             this.label5.Text = "N Objects";
             // 
+            // cb_depth
+            // 
+            this.cb_depth.AutoSize = true;
+            this.cb_depth.Location = new System.Drawing.Point(17, 435);
+            this.cb_depth.Margin = new System.Windows.Forms.Padding(4);
+            this.cb_depth.Name = "cb_depth";
+            this.cb_depth.Size = new System.Drawing.Size(68, 21);
+            this.cb_depth.TabIndex = 18;
+            this.cb_depth.Text = "Depth";
+            this.cb_depth.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1146, 523);
+            this.Controls.Add(this.cb_depth);
             this.Controls.Add(this.nud_nobj);
             this.Controls.Add(this.label5);
             this.Controls.Add(this.rb_xml);
@@ -350,6 +363,7 @@
         private System.Windows.Forms.RadioButton rb_xml;
         private System.Windows.Forms.NumericUpDown nud_nobj;
         private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.CheckBox cb_depth;
     }
 }
 

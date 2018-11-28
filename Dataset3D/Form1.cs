@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 using System.Xml;
@@ -105,6 +106,7 @@ namespace Dataset3D
 
             for (int i = 0; i < (int)nud_nobj.Value; i++)
             {
+                //отрисовка объектов
                 var obj = DrawObj(sz_real);
                 infos.Add(obj);
             }
@@ -150,6 +152,7 @@ namespace Dataset3D
 
             GL.PopMatrix();
 
+
             if (cb_save.Checked && t >= 0)
             {
                 b = control3D1.ToBitmap();
@@ -157,8 +160,18 @@ namespace Dataset3D
                 Helper.CheckCreateDir(rtb_folder.Text);
                 b.Save(rtb_folder.Text + "\\" + filename, System.Drawing.Imaging.ImageFormat.Jpeg);
 
+                if (cb_depth.Checked)
+                {
+                    var b2 = DrawDepth();
+                    var folder2 = rtb_folder.Text + "\\depth";
+                    Helper.CheckCreateDir(folder2);
+                    b2.Save(folder2 + "\\" + filename, System.Drawing.Imaging.ImageFormat.Jpeg);
+                }
+
                 File.WriteAllText(rtb_folder.Text + "\\" + t + ext, rtb_regions.Text);
             }
+
+
             control3D1.SwapBuffers();
 
             label1.Text = "" + t;
@@ -232,6 +245,33 @@ namespace Dataset3D
             nud_tint_ValueChanged(null, null);
         }
 
+        Bitmap lastDepthMap;
+        public Bitmap DrawDepth()
+        {
+            int w = control3D1.ImageWidth, h = control3D1.ImageHeight;
+            int L = w * h;
+            var depth_arr = new float[L];
+            //IntPtr unmanagedPointer = Marshal.AllocHGlobal(depth_arr.Length);
+
+            GL.ReadPixels(0, 0, w, h, PixelFormat.DepthComponent, PixelType.Float, depth_arr);
+
+            for (int i = 0; i < L; i++)
+                depth_arr[i] = FixDepth(depth_arr[i], nearPlane, farPlane)/farPlane;
+
+            lastDepthMap = Helper.BitmapFromFloatsGrayscale(depth_arr, w, h);
+            lastDepthMap.RotateFlip(RotateFlipType.RotateNoneFlipY);
+
+            return lastDepthMap;
+        }
+
+        public float FixDepth(float depthSample, float min_dist, float max_dist)
+        {
+            depthSample = 2.0f * depthSample - 1.0f;
+            var D1 = max_dist + min_dist;
+            var D2 = max_dist - min_dist;
+            var zLinear = 2.0f * min_dist * max_dist / (D1 - depthSample * D2);
+            return zLinear;
+        }
     }
 
 
