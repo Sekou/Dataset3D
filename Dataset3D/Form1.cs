@@ -42,7 +42,7 @@ namespace Dataset3D
             b = new Bitmap(control3D1.Width, control3D1.Height);
 
             oc = new ObjectCreator("meshes/", b.Width, b.Height);
-            oc.Randomize();
+            oc.Randomize(null);
 
             InitCamera();
             GL.Enable(EnableCap.Blend);
@@ -104,10 +104,25 @@ namespace Dataset3D
 
             var infos = new List<ObjectRegion>();
 
-            for (int i = 0; i < (int)nud_nobj.Value; i++)
+            float A = 600;
+
+            var lst = Helper.GetRandomPoints((int)nud_nobj.Value,
+                new float[] { -A, -A, -0.8f*A },
+                new float[] { 0, A, 0.8f*A }, 
+                new[] { false, true, true }, 1);
+
+            Helper.TransformPoints(lst, pt =>
+            {
+                var k = Math.Abs(pt[0] / A);
+                var k2 = 0.35f;
+                var k3 = (1 - k2 + 2 * k2 * k);
+                return new float[] { pt[0], pt[1] * k3, pt[2] * k3 };
+            });
+
+            for (int i = 0; i < lst.Count; i++)
             {
                 //отрисовка объектов
-                var obj = DrawObj(sz_real);
+                var obj = DrawObj(sz_real, lst, i);
                 infos.Add(obj);
             }
 
@@ -149,9 +164,7 @@ namespace Dataset3D
                 DrawBackground();
             }
 
-
             GL.PopMatrix();
-
 
             if (cb_save.Checked && t >= 0)
             {
@@ -171,7 +184,6 @@ namespace Dataset3D
                 File.WriteAllText(rtb_folder.Text + "\\" + t + ext, rtb_regions.Text);
             }
 
-
             control3D1.SwapBuffers();
 
             label1.Text = "" + t;
@@ -179,15 +191,15 @@ namespace Dataset3D
             t++;
         }
 
-        private ObjectRegion DrawObj(float sz_real)
+        private ObjectRegion DrawObj(float sz_real, List<float[]> points, int ind)
         {
-            oc.Randomize();
+            var p=oc.Randomize(points[ind]);
 
             oc.Draw();
 
             if (cb_draw_bb.Checked)
             {
-                var sz_px = sz_real * oc.k_3d_to_px;
+                var sz_px = sz_real * oc.k_3d_to_px;// (float)Math.Pow(oc.k_3d_to_px, 1.1);
                 DrawRect(oc.center.X, oc.center.Y, sz_px, sz_px);
             }
 
@@ -198,7 +210,7 @@ namespace Dataset3D
         {
             GL.PushMatrix();
             //GL.LoadIdentity();
-            GL.Translate(-farPlane+camDist+100, 0,0);
+            GL.Translate(-farPlane+camDist+100, 0, 0);
             //GL.Rotate(90, 0, 0, 1);
             GL.Rotate(90, 0, 1, 0);
             GL.Rotate(90, 0, 0, 1);
@@ -214,7 +226,7 @@ namespace Dataset3D
             GL.GetInteger(GetPName.Viewport, viewport);
 
             xc = 2 * xc / viewport[2] - 1;
-            w = 2 * w/ viewport[2];
+            w = 2 * w / viewport[2];
             yc = 2 * yc/viewport[3] - 1;
             h = 2 * h/viewport[3];
 

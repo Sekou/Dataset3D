@@ -35,12 +35,13 @@ namespace Dataset3D
                 if (f.FullName.EndsWith(ext))
                 {
                     var obj = ObjMesh.LoadFromFile(f.FullName);
+                    obj.Name = f.Name.Replace(".obj", "");
+
                     var arr = new[] { ".png", ".jpg" };
-                    foreach(var ext2 in arr)
+                    foreach (var ext2 in arr)
                     {
                         var texpath = Helper.CorrectPath(
-                        f.Directory.FullName + "/textures/" +
-                        f.Name.Replace(".obj", ext2));
+                        f.Directory.FullName + "/textures/" + obj.Name + ext2);
                         if (File.Exists(texpath))
                         {
                             obj.TextureID = OpenTK.Extra.Helper.LoadTexture(texpath);
@@ -84,6 +85,8 @@ namespace Dataset3D
         }
         public void ApplyLineToObj(ObjLine l, ObjMesh m)
         {
+            if(!string.IsNullOrWhiteSpace(l.label))
+                m.Name = l.label;
             m.UserObject = l;
             m.Scale = new Vector3(l.scale, l.scale, l.scale);
             var kpi = (float)Math.PI / 180;
@@ -100,21 +103,28 @@ namespace Dataset3D
 
         int RNDC{get{return 50 + Helper.rnd.Next(206);}}
 
-        public void Randomize()
+        public Vector3 Randomize(float[] P)
         {
             type = Helper.rnd.Next(objects.Count);
 
             bg = Color.FromArgb(255, RNDC, RNDC, RNDC);
             fg = Color.FromArgb(255, RNDC, RNDC, RNDC);
 
-            var xrnd = -Helper.r() * 2000;
-            var A = Math.Abs(xrnd * 1.1f);
-            pos = new Vector3(xrnd, Helper.r2() * A, Helper.r2() * A);
+            if (P != null) pos = new Vector3(P[0], P[1], P[2]);
+            else
+            {
+                var xrnd = -Helper.r() * 2000;
+                var A = Math.Abs(xrnd * 1.1f);
+                pos = new Vector3(xrnd, Helper.r2() * A, Helper.r2() * A);
+            }
+
             pos_light = new Vector3(Helper.r(), Helper.r2(), Helper.r2()) * 500;
 
             var axis = new Vector3(Helper.r2(), Helper.r2(), Helper.r2());
             q = Quaternion.FromAxisAngle(axis, (float)Math.PI*Helper.r2());
             q.Normalize();
+
+            return pos;
         }
         private static void InitLight(Vector3 pos)
         {
@@ -189,9 +199,11 @@ namespace Dataset3D
 
             var or = new ObjectRegion();
 
-            var name = obj_keys[type];
+            var key = obj_keys[type];
+            var obj = objects[key];
+
             //name = Regex.Replace(name, @"^[\d]+[_\-]", "");
-            or.name = ""+name;
+            or.name = ""+obj.Name;
 
             var kx = width3d * k_3d_to_px;
             var ky = width3d * k_3d_to_px;

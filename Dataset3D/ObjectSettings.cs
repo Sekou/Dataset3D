@@ -6,6 +6,7 @@ namespace Dataset3D
     public class ObjLine
     {
         public string name;
+        public string label;
         public float[] rot;
         public float scale;
         public float[] pos;

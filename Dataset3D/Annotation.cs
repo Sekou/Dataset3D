@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OpenTK;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -15,6 +16,8 @@ namespace Dataset3D
         public float ymin;
         public float xmax;
         public float ymax;
+
+        public Vector2 GetCenter() { return new Vector2((xmin + xmax) / 2, (ymin + ymax) / 2); }
 
         public string GetYOLORegion(float W, float H)
         {
