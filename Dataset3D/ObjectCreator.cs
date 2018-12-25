@@ -16,7 +16,8 @@ namespace Dataset3D
     public class ObjectCreator
     {
         public Dictionary<string, ObjMesh> objects = new Dictionary<string, ObjMesh>();
-        List<string> obj_keys;
+        List<string> obj_keys; //keys are unique
+        List<string> obj_labels; //some labels may be the same for different objects
         public ObjectSettings os;
 
         int W, H;
@@ -82,11 +83,20 @@ namespace Dataset3D
             }
 
             obj_keys = objects.Keys.ToList();
+            obj_labels = new List<string>();
+            foreach (var key in obj_keys)
+            {
+                var o = objects[key];
+                if(!obj_labels.Contains(o.Info))
+                    obj_labels.Add(o.Info);
+            }
         }
         public void ApplyLineToObj(ObjLine l, ObjMesh m)
         {
-            if(!string.IsNullOrWhiteSpace(l.label))
-                m.Name = l.label;
+            if (!string.IsNullOrWhiteSpace(l.label))
+                m.Info = l.label;
+            else m.Info = m.Name;
+
             m.UserObject = l;
             m.Scale = new Vector3(l.scale, l.scale, l.scale);
             var kpi = (float)Math.PI / 180;
@@ -94,38 +104,53 @@ namespace Dataset3D
             m.Position = new Vector3(l.pos[0], l.pos[1], l.pos[2]);
         }
 
-        public Color bg;
-        public Color fg;
+        public Color color_bg;
+        public Color color_fg;
         public Vector3 pos;
         public Vector3 pos_light;
         public Quaternion q;
         public int type;
 
-        int RNDC{get{return 50 + Helper.rnd.Next(206);}}
+        public Random rnd = new Random(0);
+        int RNDC{get{return 50 + rnd.Next(206);}}
 
-        public Vector3 Randomize(float[] P)
+        public float r() { return (float)rnd.NextDouble(); }
+        public float r2() { return 2 * (float)rnd.NextDouble() - 1; }
+        public void ResetRandom(int seed)
         {
-            type = Helper.rnd.Next(objects.Count);
+            rnd = new Random(seed);
+        }
 
-            bg = Color.FromArgb(255, RNDC, RNDC, RNDC);
-            fg = Color.FromArgb(255, RNDC, RNDC, RNDC);
+        public Vector3 RandomizePose(float[] P)
+        {
+            type = rnd.Next(objects.Count);
 
             if (P != null) pos = new Vector3(P[0], P[1], P[2]);
             else
             {
-                var xrnd = -Helper.r() * 2000;
+                var xrnd = -r() * 2000;
                 var A = Math.Abs(xrnd * 1.1f);
-                pos = new Vector3(xrnd, Helper.r2() * A, Helper.r2() * A);
+                pos = new Vector3(xrnd, r2() * A, r2() * A);
             }
 
-            pos_light = new Vector3(Helper.r(), Helper.r2(), Helper.r2()) * 500;
+            pos_light = new Vector3(r(), r2(), r2()) * 500;
 
-            var axis = new Vector3(Helper.r2(), Helper.r2(), Helper.r2());
-            q = Quaternion.FromAxisAngle(axis, (float)Math.PI*Helper.r2());
+            var axis = new Vector3(r2(), r2(), r2());
+            q = Quaternion.FromAxisAngle(axis, (float)Math.PI * r2());
             q.Normalize();
 
             return pos;
         }
+
+        public void RandomizeBackgroundColor()
+        {
+            color_bg = Color.FromArgb(255, RNDC, RNDC, RNDC);
+        }
+        public void RandomizeForegroundColor()
+        {
+            color_fg = Color.FromArgb(255, RNDC, RNDC, RNDC);
+        }
+
         private static void InitLight(Vector3 pos)
         {
             float[] light_position = new float[] { pos[0], pos[1], pos[2], 0 };
@@ -143,15 +168,17 @@ namespace Dataset3D
             GL.Enable(EnableCap.DepthTest);
             GL.Enable(EnableCap.CullFace);
         }
-        private void SelectMaterial(ObjMesh obj, Color c)
+        private void SelectMaterial(ObjMesh obj, Color c, DrawMode dm)
         {
             float[] mat_specular = new float[] { 0, 0, 0, 0 };
             float[] mat_shininess = new float[] { 0 };
             float[] mat_diffuse = new float[] { 1, 1, 1, 1 };
-            if(obj.IsTextured==false)
+
+            if (obj.IsTextured == false || dm==DrawMode.Segmentation)
                 mat_diffuse = new float[] { c.R / 255f, c.G / 255f, c.B / 255f, 1 };
 
-            float[] mat_ambient = new float[] 
+
+            float[] mat_ambient = new float[]
                 { mat_diffuse[0]/2, mat_diffuse[1] / 2, mat_diffuse[2] / 2, 1 };
 
             //float[] mat_ambient = new float[]
@@ -162,15 +189,32 @@ namespace Dataset3D
             GL.Material(MaterialFace.Front, MaterialParameter.Specular, mat_specular);
             GL.Material(MaterialFace.Front, MaterialParameter.Shininess, mat_shininess);
             GL.Material(MaterialFace.Front, MaterialParameter.Ambient, mat_ambient);
-            GL.Material(MaterialFace.Front, MaterialParameter.Diffuse, mat_diffuse);
+            if (dm == DrawMode.Normal)
+            {
+                GL.Material(MaterialFace.Front, MaterialParameter.Diffuse, mat_diffuse);
+                GL.Material(MaterialFace.Front, MaterialParameter.Emission, new float[] { 0, 0, 0, 0 });
+            }
+            if (dm == DrawMode.Segmentation)
+                GL.Material(MaterialFace.Front, MaterialParameter.Emission, mat_diffuse);
         }
 
         public Vector2 center; //object center on a screen in pixels
         public float k_3d_to_px; //3d world units to pixels ratio
 
-        public void Draw()
+        public void Draw(DrawMode dm)
         {
-            InitLight(pos_light);
+            if (dm == DrawMode.Normal)
+                InitLight(pos_light);
+            else
+            {
+#warning other lights?
+                GL.Disable(EnableCap.Light0);
+                GL.Disable(EnableCap.Light1);
+                GL.Disable(EnableCap.Light2);
+
+                GL.Enable(EnableCap.Lighting);
+            }
+
             GL.PushMatrix();
 
             GL.Translate(pos.X, pos.Y, pos.Z);
@@ -181,15 +225,20 @@ namespace Dataset3D
             var key = obj_keys[type];
             var o = objects[key];
 
-            SelectMaterial(o, fg);  
+            int color_type = obj_labels.IndexOf(o.Info);
 
-            o.Draw();
+            var c = dm == DrawMode.Segmentation ? Helper.GetColorById(color_type) : color_fg;
+            SelectMaterial(o, c, dm);
+
+            bool disable_tex = dm == DrawMode.Segmentation;
+            o.Draw(disable_tex);
 
             center = OpenTK.Extra.Helper.from3Dto2D(Matrix4.Zero, Matrix4.Zero, null, new Vector3(), out k_3d_to_px);
             k_3d_to_px *= ((ObjLine)o.UserObject).kframe;
 
             GL.PopMatrix();
         }
+
 
 
         public ObjectRegion GetObjectRegion(float width3d)
@@ -203,7 +252,7 @@ namespace Dataset3D
             var obj = objects[key];
 
             //name = Regex.Replace(name, @"^[\d]+[_\-]", "");
-            or.name = ""+obj.Name;
+            or.name = ""+obj.Info;
 
             var kx = width3d * k_3d_to_px;
             var ky = width3d * k_3d_to_px;

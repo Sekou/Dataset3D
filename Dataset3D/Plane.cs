@@ -24,7 +24,7 @@ namespace Dataset3D
         }
         public static void DrawTexture(Texture t, float w, float h)
         {
-            SelectMaterial();
+            SelectPlaneMaterial();
 
             t.Select();
 
@@ -39,7 +39,7 @@ namespace Dataset3D
             GL.End();
         }
 
-        static void SelectMaterial()
+        static void SelectPlaneMaterial()
         {
             float[] mat_specular = new float[] { 0, 0, 0, 0 };
             float[] mat_shininess = new float[] { 0 };

@@ -4,11 +4,27 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace Dataset3D
 {
-    public class Helper
+    public enum DrawMode { Normal, Segmentation };
+
+    public static class Helper
     {
+
+        public static Color[] colors;
+        static Helper()
+        {
+            colors = new Color[1000];
+            for (int i = 0; i < colors.Length; i++)
+            {
+                var c = Color.FromArgb(rnd.Next(20,235), rnd.Next(20, 235), rnd.Next(20, 235));
+                colors[i] = c;
+            }
+        }
+
         public static double[] convertFloatsToDoubles(float[] input)
         {
             if (input == null)
@@ -24,9 +40,8 @@ namespace Dataset3D
             return output;
         }
 
-        public static Random rnd = new Random();
-        public static float r() { return (float)rnd.NextDouble(); }
-        public static float r2() { return 2*(float)rnd.NextDouble()-1; }
+        public static Random rnd = new Random(1);
+       
         public static void CheckCreateDir(string path)
         {
             bool Exists = Directory.Exists(path);
@@ -119,5 +134,52 @@ namespace Dataset3D
             }
         }
 
+        public static Color GetColorById(int obj_type)
+        {
+            return colors[obj_type];
+        }
     }
+
+    public class HiPerfTimer
+    {
+        [DllImport("Kernel32.dll")]
+        private static extern bool QueryPerformanceCounter(out long lpPerformanceCount);
+
+        [DllImport("Kernel32.dll")]
+        private static extern bool QueryPerformanceFrequency(out long lpFrequency);
+
+        private long startTime, stopTime;
+        private long freq;
+
+        // Constructor
+        public HiPerfTimer()
+        {
+            startTime = 0; stopTime = 0;
+            if (QueryPerformanceFrequency(out freq) == false)
+            {
+                // high-performance counter not supported
+                throw new System.ComponentModel.Win32Exception();
+            }
+        }
+
+        // Start the timer
+        public void Start()
+        {
+            // lets do the waiting threads their work
+            Thread.Sleep(0);
+            QueryPerformanceCounter(out startTime);
+        }
+
+        // Stop the timer
+        public float Stop()
+        {
+            QueryPerformanceCounter(out stopTime);
+            return (float)Duration;
+        }
+
+        // Returns the duration of the timer (in seconds)
+        public double Duration
+        { get { return (double)(stopTime - startTime) / (double)freq; } }
+    }
+
 }
