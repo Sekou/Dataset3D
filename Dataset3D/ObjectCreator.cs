@@ -18,6 +18,7 @@ namespace Dataset3D
         public Dictionary<string, ObjMesh> objects = new Dictionary<string, ObjMesh>();
         List<string> obj_keys; //keys are unique
         List<string> obj_labels; //some labels may be the same for different objects
+        Dictionary<string, int> label_ids=new Dictionary<string, int>(); //e.g. "cube1"=0, "cube2"=0, "sphere_big"=1, "sphere_small"=1, ...
         public ObjectSettings os;
 
         int W, H;
@@ -84,11 +85,18 @@ namespace Dataset3D
 
             obj_keys = objects.Keys.ToList();
             obj_labels = new List<string>();
+
+            int label_id = 0;
+
             foreach (var key in obj_keys)
             {
                 var o = objects[key];
-                if(!obj_labels.Contains(o.Info))
+                if (!obj_labels.Contains(o.Info))
+                {
                     obj_labels.Add(o.Info);
+                    if (!label_ids.ContainsKey(o.Info))
+                        label_ids[o.Info] = label_id++;
+                }
             }
         }
         public void ApplyLineToObj(ObjLine l, ObjMesh m)
@@ -250,6 +258,7 @@ namespace Dataset3D
 
             var key = obj_keys[type];
             var obj = objects[key];
+            var label_id = label_ids[obj.Info];
 
             //name = Regex.Replace(name, @"^[\d]+[_\-]", "");
             or.name = ""+obj.Info;
@@ -257,6 +266,7 @@ namespace Dataset3D
             var kx = width3d * k_3d_to_px;
             var ky = width3d * k_3d_to_px;
 
+            or.label_id = label_id;          //i
             or.xmin = (center.X - kx / 2);
             or.ymin = (center.Y - ky / 2);
             or.xmax = (center.X + kx / 2);

@@ -12,6 +12,7 @@ namespace Dataset3D
     public class ObjectRegion
     {
         public string name;
+        public int label_id;             //i
         public float xmin;
         public float ymin;
         public float xmax;
@@ -27,7 +28,7 @@ namespace Dataset3D
             var dy = (ymax - ymin) / 2;
 
             return string.Format(CultureInfo.InvariantCulture, "{0} {1:F4} {2:F4} {3:F4} {4:F4}",
-               name, cx / W, cy / H, dx / W, dy / H);
+               label_id, cx / W, cy / H, dx / W, dy / H);
         }
     }
     public class Annotation

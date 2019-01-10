@@ -1,0 +1,7 @@
+units: m
+scale_default: 1
+rotate_default: 0 0 0
+columns: x y z rx ry rz scale file
+0 0 0 90 45 0 1000 bush.obj
+5 5 0 90 0 0 1000 bush.obj
+0 5 0 90 -45 0 1000 bush.obj

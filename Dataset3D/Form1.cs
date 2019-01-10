@@ -72,6 +72,7 @@ namespace Dataset3D
         //ОТРИСОВКА ПО ТАЙМЕРУ
         private void timer1_Tick(object sender, EventArgs e)
         {
+            //return;
             if (!loaded) return;
             if (cb_pause.Checked) return;
             if (t >= nud_max_images.Value) return;
@@ -91,7 +92,7 @@ namespace Dataset3D
             infos = DrawAllObjects(t, sz_real, lst, DrawMode.Normal);
 
             string filename, annot_ext;
-            GetAnnotation(infos, out filename, out annot_ext);
+            var annot=GetAnnotation(infos, out filename, out annot_ext);
 
             GL.PopMatrix();
 
@@ -99,8 +100,8 @@ namespace Dataset3D
             {
                 b = control3D1.ToBitmap();
             
-                Helper.CheckCreateDir(rtb_folder.Text);
-                b.Save(rtb_folder.Text + "\\" + filename, System.Drawing.Imaging.ImageFormat.Jpeg);
+                Helper.CheckCreateDir(tb_folder.Text);
+                b.Save(tb_folder.Text + "\\" + filename, System.Drawing.Imaging.ImageFormat.Jpeg);
 
                 if (cb_depth.Checked)
                 {
@@ -111,14 +112,14 @@ namespace Dataset3D
                     b = control3D1.ToBitmap();
                     
                     var b2 = DrawDepth();
-                    var folder2 = rtb_folder.Text + "\\depth";
+                    var folder2 = tb_folder.Text + "\\depth";
                     Helper.CheckCreateDir(folder2);
                     b2.Save(folder2 + "\\" + filename, System.Drawing.Imaging.ImageFormat.Jpeg);
 
                     int ind = filename.LastIndexOf(".");
                     var ext = filename.Substring(ind);
                     var filename3 = filename.Substring(0, ind) + "-right" + ext;
-                    var folder3 = rtb_folder.Text + "\\stereo";
+                    var folder3 = tb_folder.Text + "\\stereo";
                     Helper.CheckCreateDir(folder3);
                     b.Save(folder3 + "\\" + filename3, System.Drawing.Imaging.ImageFormat.Jpeg);
                     GL.PopMatrix();
@@ -131,13 +132,13 @@ namespace Dataset3D
                     //control3D1.SwapBuffers();
 
                     var b3 = control3D1.ToBitmap();
-                    var folder3 = rtb_folder.Text + "\\segm";
+                    var folder3 = tb_folder.Text + "\\segm";
                     Helper.CheckCreateDir(folder3);
                     b3.Save(folder3 + "\\" + filename, System.Drawing.Imaging.ImageFormat.Jpeg);
                     //control3D1.SwapBuffers();
                     }
 
-                File.WriteAllText(rtb_folder.Text + "\\" + t + annot_ext, rtb_regions.Text);
+                File.WriteAllText(tb_folder.Text + "\\" + t + annot_ext, annot);
             }
 
             control3D1.SwapBuffers();
@@ -166,22 +167,23 @@ namespace Dataset3D
             return lst;
         }
 
-        private void GetAnnotation(List<ObjectRegion> infos, out string filename, out string ext)
+        private string GetAnnotation(List<ObjectRegion> infos, out string filename, out string ext)
         {
             filename = t + ".jpg";
             ext = "";
+            string result = "";
             if (rb_xml.Checked)
             {
                 var annot = new Annotation()
                 {
                     filename = filename,
-                    folder = rtb_folder.Text,
+                    folder = tb_folder.Text,
                     img_depth = 3,
                     img_width = control3D1.ImageWidth,
                     img_height = control3D1.ImageHeight,
                     objects = infos
                 };
-                rtb_regions.Text = annot.ToXml();
+                rtb_regions.Text = result = annot.ToXml();
                 ext = ".xml";
             }
             else
@@ -190,9 +192,10 @@ namespace Dataset3D
                     infos.ConvertAll(x =>
                     x.GetYOLORegion(Width, Height)));
 
-                rtb_regions.Text = s;
+                rtb_regions.Text = result = s;
                 ext = ".txt";
             }
+            return result;
         }
 
         List<ObjectRegion> DrawAllObjects(int iteration, float sz_real,
@@ -357,7 +360,7 @@ namespace Dataset3D
 
         private void bt_open_folder_Click(object sender, EventArgs e)
         {
-            Process.Start(@"c:\windows\explorer.exe", rtb_folder.Text);
+            Process.Start(@"c:\windows\explorer.exe", tb_folder.Text);
         }
 
         private void bt_reset_Click(object sender, EventArgs e)
@@ -392,6 +395,26 @@ namespace Dataset3D
         {
             if(cb_hide.Checked) control3D1.Hide();
             else control3D1.Show();
+        }
+
+        World world;
+        private void bt_load_world_Click(object sender, EventArgs e)
+        {
+            var arr = tb_shift.Text.Split(' ');
+            var arr2 = Array.ConvertAll(arr, a => float.Parse(a));
+
+            world = new World("scenes/forest1.txt");
+
+            InitCamera();
+
+            GL.PushMatrix();
+            GL.Translate(arr2[0], arr2[1], arr2[2]);
+            GL.Scale(1000, 1000, 1000);
+            world.Draw();
+            control3D1.SwapBuffers();
+
+            GL.PopMatrix();
+
         }
     }
 }
