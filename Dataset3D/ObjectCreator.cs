@@ -43,6 +43,7 @@ namespace Dataset3D
                             break;
                         }
                     }
+                    obj.RecalculateGeomParams();
                     objects[f.Name] = obj;
                 }
             }
@@ -144,7 +145,7 @@ namespace Dataset3D
             var lst = GetRandomPoints(num_objs,
                 new float[] { -2*A, -A, -0.8f * A },
                 new float[] { 0, A, 0.8f * A },
-                new[] { false, true, true }, 1);
+                new[] { false, true, true }, true, 0.1f);
 
             TransformPoints(lst, pt =>
             {
@@ -157,31 +158,34 @@ namespace Dataset3D
         }
 
         public List<float[]> GetRandomPoints(int N,
-          float[] min, float[] max, bool[] active, float k)
+          float[] min, float[] max, bool[] active, bool attract, float k)
         {
             var points = new List<float[]>();
             for (int i = 0; i < N; i++)
                 points.Add(getrnd(min, max));
 
-            for (int i = 0; i < points.Count; i++)
+            if (attract)
             {
-                for (int j = i + 1; j < points.Count; j++)
+                for (int i = 0; i < points.Count; i++)
                 {
-                    float[] a = points[i], b = points[j];
-                    for (int m = 0; m < active.Length; m++)
+                    for (int j = i + 1; j < points.Count; j++)
                     {
-                        if (active[m])
+                        float[] a = points[i], b = points[j];
+                        for (int m = 0; m < active.Length; m++)
                         {
-                            var d = Math.Max(1, a[m] - b[m]);
-                            var A = (max[m] - min[m]);
-                            var f = k * A / d / points.Count;
-                            a[m] += f;
-                            b[m] -= f;
+                            if (active[m])
+                            {
+                                var d = Math.Max(1, a[m] - b[m]);
+                                var A = (max[m] - min[m]);
+                                var f = -k * A / d / points.Count;
+                                a[m] += f;
+                                b[m] -= f;
+                            }
                         }
                     }
                 }
-            }
 
+            }
             return points;
         }
 
@@ -214,7 +218,7 @@ namespace Dataset3D
             var lst = GetObjectsPositions(num_objs);
 
             world.P.light_pos = new[] { r() * 500, r2() * 500, r2() * 500 };
-            world.plane = new Plane(backgrounds.GetRandomTexture(rnd), vp.wFarPlane, vp.hFarPlane);
+           
             world.iteration = iteration;
 
             for (int i = 0; i < lst.Count; i++)

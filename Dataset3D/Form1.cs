@@ -29,15 +29,17 @@ namespace Dataset3D
             {
                 if (cb_move.Checked)
                 {
-                    if (!cb_file_world.Checked)
+                    if (cb_file_world.Checked && file_world!=null)
                     {
-                        DrawAllObjects(t, DrawMode.Normal, random_world);
+                        //InitCamera2();
+                        DrawAllObjects(t, DrawMode.Normal, file_world);
+                        if (traj != null && cb_draw_traj.Checked)
+                            traj.Draw();
                     }
                     else
                     {
-                        DrawAllObjects(t, DrawMode.Normal, world);
-                        if(traj!=null && cb_draw_traj.Checked)
-                            traj.Draw();
+                        //InitCamera(vp);
+                        DrawAllObjects(t, DrawMode.Normal, random_world);
                     }
                 }
             };
@@ -80,7 +82,6 @@ namespace Dataset3D
             vp.wFarPlane = 1.05f * (float)(2 * vp.farPlane * Math.Tan(fov2) * vp.aspect);
             vp.hFarPlane = vp.wFarPlane / vp.aspect;
 
-            InitCamera(vp);
             GL.Enable(EnableCap.Blend);
 
             t = 0;
@@ -88,6 +89,8 @@ namespace Dataset3D
             cb_pause.Checked = true;
 
             lb_frame.Text = "...";
+
+            InitCamera(vp);
         }
 
         bool loaded = false;
@@ -132,9 +135,15 @@ namespace Dataset3D
         //ОТРИСОВКА ПО ТАЙМЕРУ
         private void timer1_Tick(object sender, EventArgs e)
         {
-            Matrix4 mvm;
+            Matrix4 mvm, projm;
             GL.GetFloat(GetPName.ModelviewMatrix, out mvm);
+            GL.GetFloat(GetPName.ProjectionMatrix, out projm);
+            mvm.Transpose();
+            projm.Transpose();
             tb_mvm.Text = mvm.ToString();
+            tb_projm.Text = projm.ToString();
+
+
 
             if (cb_move.Checked)
             {
@@ -164,6 +173,7 @@ namespace Dataset3D
         {
             GL.PushMatrix();
 
+            InitCamera(vp);
             random_world = DrawAllObjects(t, DrawMode.Normal);
 
             string filename, annot_ext;
@@ -257,11 +267,20 @@ namespace Dataset3D
             //синхронизация цветов фона
             oc.ResetRandom((existing_world != null) ? existing_world.iteration : iteration);
 
-            var world = (existing_world != null) ? existing_world
-            : oc.GetWorld(iteration, (int)nud_nobj.Value, vp);
-
+            var world = existing_world;
+            
             if (existing_world == null)
+            {
+                world= oc.GetWorld(iteration, (int)nud_nobj.Value, vp);
                 world.backgroung_color = Color.FromArgb(255, oc.RNDC, oc.RNDC, oc.RNDC);
+
+                world.plane = null;
+                if (oc.rnd.NextDouble() < (double)nud_ptex.Value)
+                {
+                    world.plane = new Plane(oc.backgrounds.GetRandomTexture(oc.rnd),
+                        vp.wFarPlane, vp.hFarPlane);
+                }
+            }
 
             //GL.ClearColor(Color.Blue);
 
@@ -269,7 +288,7 @@ namespace Dataset3D
             {
                 Control3D.ClearColor(world.backgroung_color);
 
-                if (oc.rnd.NextDouble() < (double)nud_ptex.Value)
+                if (world.plane!=null)
                 {
                     //BACKGROUND
 #warning move into PlaneObjItem:ObjectItem
@@ -321,6 +340,7 @@ namespace Dataset3D
             GL.Disable(EnableCap.Lighting);
             GL.Disable(EnableCap.Texture2D);
             GL.Color3(Color.Red);
+            GL.LineWidth(1);
             int[] viewport = new int[4];
             GL.GetInteger(GetPName.Viewport, viewport);
 
@@ -408,7 +428,7 @@ namespace Dataset3D
             else control3D1.Show();
         }
 
-        World world;
+        World file_world;
         SimpleTrajectory traj;
 
         World random_world;
@@ -416,7 +436,7 @@ namespace Dataset3D
         private void bt_load_world_Click(object sender, EventArgs e)
         {
             var fm = new FileManager(Helper.CorrectPath(tb_scene.Text + "/" + "meshes"));
-            world = new World(Helper.CorrectPath(tb_scene.Text + "/" + "scene.txt"), fm);
+            file_world = new World(Helper.CorrectPath(tb_scene.Text + "/" + "scene.txt"), fm);
 
             traj = new SimpleTrajectory(Helper.CorrectPath(tb_scene.Text + "/" + "traj.txt"));
             nud_cam.Maximum = traj.points.Count - 1;
@@ -427,8 +447,8 @@ namespace Dataset3D
         private void InitCamera2()
         {
             var vp2 = vp.GetCopy();
-            vp2.farPlane = world.P.farPlane;
-            vp2.nearPlane = world.P.nearPlane;
+            vp2.farPlane = file_world.P.farPlane;
+            vp2.nearPlane = file_world.P.nearPlane;
             InitCamera(vp2);
         }
 

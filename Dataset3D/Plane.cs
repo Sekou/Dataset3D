@@ -1,6 +1,7 @@
 ﻿using OpenTK.Graphics.OpenGL;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 
@@ -47,6 +48,8 @@ namespace Dataset3D
 
         static void SelectPlaneMaterial()
         {
+            GL.Color3(Color.White);
+
             float[] mat_specular = new float[] { 0, 0, 0, 0 };
             float[] mat_shininess = new float[] { 0 };
             float[] mat_diffuse = new float[] { 1, 1, 1, 1 };

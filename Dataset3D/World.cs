@@ -15,7 +15,7 @@ namespace Dataset3D
     {
         public Matrix4 ShiftTransform;
         public Matrix4 RotTransform;
-        public float Scale=1;
+        public float InPlaceScale=1;
         public ObjMesh mesh;
 
 #warning group into class MaterialInfo
@@ -49,13 +49,12 @@ namespace Dataset3D
                 * Matrix4.CreateRotationY(P[4] * kpi)
                 * Matrix4.CreateRotationZ(P[5] * kpi);
 
-            Scale = P[6];
-
-            var Scale2 = Scale * world.P.GlobalScale;
+            InPlaceScale = P[6];
 
 #warning An alterative is to use GL.Scale() during drawing but it leads to incorrect lighting
 
-            ShiftTransform = Matrix4.CreateTranslation(P[0] * Scale2, P[1] * Scale2, P[2] * Scale2);
+            ShiftTransform = Matrix4.CreateTranslation(
+                P[0] * world.P.GlobalScale, P[1] * world.P.GlobalScale, P[2] * world.P.GlobalScale);
 
             mesh = fileManager.objects[arr.Last()];
         }
@@ -73,27 +72,29 @@ namespace Dataset3D
 
             SelectMaterial(mesh.IsTextured, color, dm);
 
-            mesh.Draw(disable_tex: dm != DrawMode.Normal, scale:Scale*P.GlobalScale);
+            var AllScale = InPlaceScale * P.GlobalScale;
+            mesh.Draw(disable_tex: dm != DrawMode.Normal, scale:AllScale);
 
             frame_info = new ObjItemFrameInfo();
             frame_info.center = OpenTK.Extra.Helper.from3Dto2D(Matrix4.Zero, Matrix4.Zero,
-                null, new Vector3(), out frame_info.k_3d_to_px);
+                null, mesh.Center * AllScale, out frame_info.k_3d_to_px);
 
             frame_info.k_3d_to_px *= ((ObjLine)mesh.UserObject).kframe;
-            frame_info.region = GetObjectRegion(frame_info);
+            frame_info.region = GetObjectRegion(P, frame_info);
 
             GL.PopMatrix();
         }
 
         public static void SelectMaterial(bool IsTextured, Color c, DrawMode dm)
         {
+            GL.Color3(Color.White);
+
             float[] mat_specular = new float[] { 0, 0, 0, 0 };
             float[] mat_shininess = new float[] { 0 };
             float[] mat_diffuse = new float[] { 1, 1, 1, 1 };
 
             if (IsTextured == false || dm == DrawMode.Segmentation)
                 mat_diffuse = new float[] { c.R / 255f, c.G / 255f, c.B / 255f, 1 };
-
 
             float[] mat_ambient = new float[]
                 { mat_diffuse[0]/2, mat_diffuse[1] / 2, mat_diffuse[2] / 2, 1 };
@@ -113,9 +114,10 @@ namespace Dataset3D
             }
             if (dm == DrawMode.Segmentation)
                 GL.Material(MaterialFace.Front, MaterialParameter.Emission, mat_diffuse);
+
         }
 
-        public ObjectRegion GetObjectRegion(ObjItemFrameInfo frame_info)
+        public ObjectRegion GetObjectRegion(WorldParams P, ObjItemFrameInfo frame_info)
         {
             int[] viewport = new int[4];
             GL.GetInteger(GetPName.Viewport, viewport);
@@ -125,14 +127,15 @@ namespace Dataset3D
             //name = Regex.Replace(name, @"^[\d]+[_\-]", "");
             or.name = "" + label;
 
-#warning mn
-            float width3d = 200;
+            float sc = (mesh.Scale[0] + mesh.Scale[1] + mesh.Scale[2])/ 3;
+            float AllScale = sc * InPlaceScale * P.GlobalScale; // * 0.01f;
+            float width3d = mesh.Radius * AllScale * 2;
 
             var kx = width3d * frame_info.k_3d_to_px;
             var ky = width3d * frame_info.k_3d_to_px;
 
             or.label_id = label_id;          //i
-            or.xmin = (frame_info.center.X - kx / 2);
+            or.xmin = (frame_info.  center.X - kx / 2);
             or.ymin = (frame_info.center.Y - ky / 2);
             or.xmax = (frame_info.center.X + kx / 2);
             or.ymax = (frame_info.center.Y + ky / 2);
@@ -235,10 +238,9 @@ namespace Dataset3D
             {
                 InitLight(P.light_pos);
             }
-            else
+            else if (dm == DrawMode.Segmentation)
             {
                 GL.Disable(EnableCap.Light0);
-#warning other lights?
                 GL.Enable(EnableCap.Lighting);
             }
 
@@ -246,7 +248,20 @@ namespace Dataset3D
 
             for (int i = 0; i < obj_items.Count; i++)
             {
+
+                if (dm == DrawMode.Normal)
+                {
+                    GL.Enable(EnableCap.Light0);
+                    GL.Enable(EnableCap.Lighting);
+                }
+                else if (dm == DrawMode.Segmentation)
+                {
+                    GL.Disable(EnableCap.Light0);
+                    GL.Enable(EnableCap.Lighting);
+                }
+
                 var oi = obj_items[i];
+
                 oi.Draw(dm, P);
                 if (onObjDraw != null)
                 {

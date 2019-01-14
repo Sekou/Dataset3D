@@ -62,10 +62,12 @@
             this.label6 = new System.Windows.Forms.Label();
             this.nud_cam = new System.Windows.Forms.NumericUpDown();
             this.cb_move_traj = new System.Windows.Forms.CheckBox();
-            this.control3D1 = new OpenTK.Extra.Control3D();
             this.tb_mvm = new System.Windows.Forms.TextBox();
             this.label7 = new System.Windows.Forms.Label();
             this.cb_draw_traj = new System.Windows.Forms.CheckBox();
+            this.control3D1 = new OpenTK.Extra.Control3D();
+            this.label8 = new System.Windows.Forms.Label();
+            this.tb_projm = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.nud_tint)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_max_images)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_ptex)).BeginInit();
@@ -179,7 +181,7 @@
             this.nud_max_images.Size = new System.Drawing.Size(59, 20);
             this.nud_max_images.TabIndex = 10;
             this.nud_max_images.Value = new decimal(new int[] {
-            10,
+            100,
             0,
             0,
             0});
@@ -460,30 +462,18 @@
             this.cb_move_traj.Text = "Move Traj";
             this.cb_move_traj.UseVisualStyleBackColor = true;
             // 
-            // control3D1
-            // 
-            this.control3D1.BackColor = System.Drawing.Color.Black;
-            this.control3D1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.control3D1.Location = new System.Drawing.Point(86, 32);
-            this.control3D1.Margin = new System.Windows.Forms.Padding(0);
-            this.control3D1.Name = "control3D1";
-            this.control3D1.Size = new System.Drawing.Size(496, 381);
-            this.control3D1.TabIndex = 11;
-            this.control3D1.VSync = false;
-            this.control3D1.Load += new System.EventHandler(this.control3D1_Load);
-            // 
             // tb_mvm
             // 
-            this.tb_mvm.Location = new System.Drawing.Point(93, 490);
+            this.tb_mvm.Location = new System.Drawing.Point(88, 490);
             this.tb_mvm.Margin = new System.Windows.Forms.Padding(2);
             this.tb_mvm.Name = "tb_mvm";
-            this.tb_mvm.Size = new System.Drawing.Size(753, 20);
+            this.tb_mvm.Size = new System.Drawing.Size(758, 20);
             this.tb_mvm.TabIndex = 34;
             // 
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(11, 495);
+            this.label7.Location = new System.Drawing.Point(6, 494);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(77, 13);
             this.label7.TabIndex = 35;
@@ -501,11 +491,42 @@
             this.cb_draw_traj.Text = "Draw Traj";
             this.cb_draw_traj.UseVisualStyleBackColor = true;
             // 
+            // control3D1
+            // 
+            this.control3D1.BackColor = System.Drawing.Color.Black;
+            this.control3D1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.control3D1.Location = new System.Drawing.Point(86, 32);
+            this.control3D1.Margin = new System.Windows.Forms.Padding(0);
+            this.control3D1.Name = "control3D1";
+            this.control3D1.Size = new System.Drawing.Size(496, 381);
+            this.control3D1.TabIndex = 11;
+            this.control3D1.VSync = false;
+            this.control3D1.Load += new System.EventHandler(this.control3D1_Load);
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Location = new System.Drawing.Point(8, 518);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(72, 13);
+            this.label8.TabIndex = 38;
+            this.label8.Text = "ProjectionMat";
+            // 
+            // tb_projm
+            // 
+            this.tb_projm.Location = new System.Drawing.Point(88, 514);
+            this.tb_projm.Margin = new System.Windows.Forms.Padding(2);
+            this.tb_projm.Name = "tb_projm";
+            this.tb_projm.Size = new System.Drawing.Size(758, 20);
+            this.tb_projm.TabIndex = 37;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(860, 514);
+            this.ClientSize = new System.Drawing.Size(860, 540);
+            this.Controls.Add(this.label8);
+            this.Controls.Add(this.tb_projm);
             this.Controls.Add(this.cb_draw_traj);
             this.Controls.Add(this.label7);
             this.Controls.Add(this.tb_mvm);
@@ -594,6 +615,8 @@
         private System.Windows.Forms.TextBox tb_mvm;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.CheckBox cb_draw_traj;
+        private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.TextBox tb_projm;
     }
 }
 

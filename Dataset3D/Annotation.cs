@@ -26,9 +26,9 @@ namespace Dataset3D
         public string GetYOLORegion(float W, float H)
         {
             var cx = (xmin + xmax) / 2;
-            var dx = (xmax - xmin) / 2;
+            var dx = (xmax - xmin);
             var cy = (ymin + ymax) / 2;
-            var dy = (ymax - ymin) / 2;
+            var dy = (ymax - ymin);
 
             return string.Format(CultureInfo.InvariantCulture, "{0} {1:F4} {2:F4} {3:F4} {4:F4}",
                label_id, cx / W, cy / H, dx / W, dy / H);
