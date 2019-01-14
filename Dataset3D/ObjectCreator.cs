@@ -1,33 +1,25 @@
 ﻿using Newtonsoft.Json;
 using OpenTK;
 using OpenTK.Extra;
-using OpenTK.Graphics.OpenGL;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
+using static Dataset3D.Form1;
 
 namespace Dataset3D
 {
-    public class ObjectCreator
+    public class FileManager
     {
         public Dictionary<string, ObjMesh> objects = new Dictionary<string, ObjMesh>();
-        List<string> obj_keys; //keys are unique
-        List<string> obj_labels; //some labels may be the same for different objects
-        Dictionary<string, int> label_ids=new Dictionary<string, int>(); //e.g. "cube1"=0, "cube2"=0, "sphere_big"=1, "sphere_small"=1, ...
+        public List<string> obj_filenames; //filenames (keys) are unique
+        public List<string> obj_labels; //some labels may be the same for different objects
+        public Dictionary<string, int> label_ids = new Dictionary<string, int>(); //e.g. "cube1"=0, "cube2"=0, "sphere_big"=1, "sphere_small"=1, ...
         public ObjectSettings os;
 
-        int W, H;
-
-        public ObjectCreator(string folder, int W, int H)
+        public FileManager(string folder)
         {
-            this.W = W;
-            this.H = H;
-
             var dir = new DirectoryInfo(folder);
             var files = dir.GetFiles("*", SearchOption.TopDirectoryOnly);
 
@@ -55,7 +47,7 @@ namespace Dataset3D
                 }
             }
 
-            var fi = new FileInfo(folder + "transform.json");
+            var fi = new FileInfo(folder + "/transform.json");
 
             if (!fi.Exists)
             {
@@ -63,7 +55,8 @@ namespace Dataset3D
                 var s = JsonConvert.SerializeObject(os);
                 File.WriteAllText(fi.FullName, s);
             }
-            else {
+            else
+            {
                 var s = File.ReadAllText(fi.FullName);
                 os = JsonConvert.DeserializeObject<ObjectSettings>(s);
             }
@@ -76,21 +69,21 @@ namespace Dataset3D
             foreach (var line in os.lines)
             {
                 var name = line.name;
-                if (!name.EndsWith(ext) && name!="default") name += ext;
+                if (!name.EndsWith(ext) && name != "default") name += ext;
                 if (objects.ContainsKey(name))
                 {
                     ApplyLineToObj(line, objects[name]);
                 }
             }
 
-            obj_keys = objects.Keys.ToList();
+            obj_filenames = objects.Keys.ToList();
             obj_labels = new List<string>();
 
             int label_id = 0;
 
-            foreach (var key in obj_keys)
+            foreach (var filename in obj_filenames)
             {
-                var o = objects[key];
+                var o = objects[filename];
                 if (!obj_labels.Contains(o.Info))
                 {
                     obj_labels.Add(o.Info);
@@ -99,6 +92,7 @@ namespace Dataset3D
                 }
             }
         }
+
         public void ApplyLineToObj(ObjLine l, ObjMesh m)
         {
             if (!string.IsNullOrWhiteSpace(l.label))
@@ -111,16 +105,29 @@ namespace Dataset3D
             m.Rotation = new Vector3(l.rot[0] * kpi, l.rot[1] * kpi, l.rot[2] * kpi);
             m.Position = new Vector3(l.pos[0], l.pos[1], l.pos[2]);
         }
+    }
 
-        public Color color_bg;
-        public Color color_fg;
-        public Vector3 pos;
-        public Vector3 pos_light;
-        public Quaternion q;
-        public int type;
+
+    public class ObjectCreator
+    {
+        public FileManager fileManager;
+        public Textures backgrounds;
+        int W, H;
+
+        public ObjectCreator(string folder, string backgr_folder, int W, int H)
+        {
+            this.W = W;
+            this.H = H;
+
+            fileManager = new FileManager(folder);
+
+            backgrounds = new Textures(backgr_folder);
+
+        }
+       
 
         public Random rnd = new Random(0);
-        int RNDC{get{return 50 + rnd.Next(206);}}
+        public int RNDC{get{return 50 + rnd.Next(206);}}
 
         public float r() { return (float)rnd.NextDouble(); }
         public float r2() { return 2 * (float)rnd.NextDouble() - 1; }
@@ -128,151 +135,125 @@ namespace Dataset3D
         {
             rnd = new Random(seed);
         }
-
-        public Vector3 RandomizePose(float[] P)
+        
+        #region Point Generation
+        public List<float[]> GetObjectsPositions(int num_objs)
         {
-            type = rnd.Next(objects.Count);
+            float A = 600;
 
-            if (P != null) pos = new Vector3(P[0], P[1], P[2]);
-            else
+            var lst = GetRandomPoints(num_objs,
+                new float[] { -2*A, -A, -0.8f * A },
+                new float[] { 0, A, 0.8f * A },
+                new[] { false, true, true }, 1);
+
+            TransformPoints(lst, pt =>
             {
-                var xrnd = -r() * 2000;
-                var A = Math.Abs(xrnd * 1.1f);
-                pos = new Vector3(xrnd, r2() * A, r2() * A);
+                var k = Math.Abs(pt[0] / A);
+                var k2 = 0.35f;
+                var k3 = (1 - k2 + 2 * k2 * k);
+                return new float[] { pt[0], pt[1] * k3, pt[2] * k3 };
+            });
+            return lst;
+        }
+
+        public List<float[]> GetRandomPoints(int N,
+          float[] min, float[] max, bool[] active, float k)
+        {
+            var points = new List<float[]>();
+            for (int i = 0; i < N; i++)
+                points.Add(getrnd(min, max));
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                for (int j = i + 1; j < points.Count; j++)
+                {
+                    float[] a = points[i], b = points[j];
+                    for (int m = 0; m < active.Length; m++)
+                    {
+                        if (active[m])
+                        {
+                            var d = Math.Max(1, a[m] - b[m]);
+                            var A = (max[m] - min[m]);
+                            var f = k * A / d / points.Count;
+                            a[m] += f;
+                            b[m] -= f;
+                        }
+                    }
+                }
             }
 
-            pos_light = new Vector3(r(), r2(), r2()) * 500;
-
-            var axis = new Vector3(r2(), r2(), r2());
-            q = Quaternion.FromAxisAngle(axis, (float)Math.PI * r2());
-            q.Normalize();
-
-            return pos;
+            return points;
         }
 
-        public void RandomizeBackgroundColor()
+        float getrnd(float min, float max)
         {
-            color_bg = Color.FromArgb(255, RNDC, RNDC, RNDC);
+            return min + (float)rnd.NextDouble() * (max - min);
         }
-        public void RandomizeForegroundColor()
+        float[] getrnd(float[] min, float[] max)
         {
-            color_fg = Color.FromArgb(255, RNDC, RNDC, RNDC);
+            var res = new float[min.Length];
+            for (int i = 0; i < res.Length; i++)
+                res[i] = getrnd(min[i], max[i]);
+            return res;
         }
 
-        private static void InitLight(Vector3 pos)
+        public static void TransformPoints(List<float[]> points, Func<float[], float[]> T)
         {
-            float[] light_position = new float[] { pos[0], pos[1], pos[2], 0 };
-            float[] light_ambient = { 0.2f, 0.2f, 0.2f, 1.0f };
-            float[] light_diffuse = { 0.8f, 0.8f, 0.8f, 1.0f };
-            float[] light_specular = { 1.0f, 1.0f, 1.0f, 1.0f };
-
-            GL.Light(LightName.Light0, LightParameter.Position, light_position);
-            GL.Light(LightName.Light0, LightParameter.Ambient, light_ambient);
-            GL.Light(LightName.Light0, LightParameter.Diffuse, light_diffuse);
-            GL.Light(LightName.Light0, LightParameter.Specular, light_specular);
-
-            GL.Enable(EnableCap.Lighting);
-            GL.Enable(EnableCap.Light0);
-            GL.Enable(EnableCap.DepthTest);
-            GL.Enable(EnableCap.CullFace);
-        }
-        private void SelectMaterial(ObjMesh obj, Color c, DrawMode dm)
-        {
-            float[] mat_specular = new float[] { 0, 0, 0, 0 };
-            float[] mat_shininess = new float[] { 0 };
-            float[] mat_diffuse = new float[] { 1, 1, 1, 1 };
-
-            if (obj.IsTextured == false || dm==DrawMode.Segmentation)
-                mat_diffuse = new float[] { c.R / 255f, c.G / 255f, c.B / 255f, 1 };
-
-
-            float[] mat_ambient = new float[]
-                { mat_diffuse[0]/2, mat_diffuse[1] / 2, mat_diffuse[2] / 2, 1 };
-
-            //float[] mat_ambient = new float[]
-            //   {0, 0, 0, 0 };
-
-            GL.ShadeModel(ShadingModel.Smooth);
-
-            GL.Material(MaterialFace.Front, MaterialParameter.Specular, mat_specular);
-            GL.Material(MaterialFace.Front, MaterialParameter.Shininess, mat_shininess);
-            GL.Material(MaterialFace.Front, MaterialParameter.Ambient, mat_ambient);
-            if (dm == DrawMode.Normal)
+            for (int i = 0; i < points.Count; i++)
             {
-                GL.Material(MaterialFace.Front, MaterialParameter.Diffuse, mat_diffuse);
-                GL.Material(MaterialFace.Front, MaterialParameter.Emission, new float[] { 0, 0, 0, 0 });
+                points[i] = T(points[i]);
             }
-            if (dm == DrawMode.Segmentation)
-                GL.Material(MaterialFace.Front, MaterialParameter.Emission, mat_diffuse);
-        }
+        } 
+        #endregion
 
-        public Vector2 center; //object center on a screen in pixels
-        public float k_3d_to_px; //3d world units to pixels ratio
-
-        public void Draw(DrawMode dm)
+        public World GetWorld(int iteration, int num_objs, ViewportParams vp)
         {
-            if (dm == DrawMode.Normal)
-                InitLight(pos_light);
-            else
-            {
-#warning other lights?
-                GL.Disable(EnableCap.Light0);
-                GL.Disable(EnableCap.Light1);
-                GL.Disable(EnableCap.Light2);
+            ResetRandom(iteration);
 
-                GL.Enable(EnableCap.Lighting);
+            var world = new World();
+            var lst = GetObjectsPositions(num_objs);
+
+            world.P.light_pos = new[] { r() * 500, r2() * 500, r2() * 500 };
+            world.plane = new Plane(backgrounds.GetRandomTexture(rnd), vp.wFarPlane, vp.hFarPlane);
+            world.iteration = iteration;
+
+            for (int i = 0; i < lst.Count; i++)
+            {
+                var P = lst[i];
+
+                //ROTATION AND TRANSLATION
+                var axis = new Vector3(r2(), r2(), r2());
+                var q = Quaternion.FromAxisAngle(axis, (float)Math.PI * r2());
+                q.Normalize();
+
+                var oi = new ObjItem();
+                oi.RotTransform = Matrix4.CreateFromQuaternion(q);
+                oi.ShiftTransform = Matrix4.CreateTranslation(P[0], P[1], P[2]);
+
+                //MESH AND LABELS
+                oi.type = rnd.Next(fileManager.objects.Count);
+                oi.filename = fileManager.obj_filenames[oi.type];
+
+                var o = fileManager.objects[oi.filename];
+                oi.mesh = o;
+
+                oi.label_id = fileManager.label_ids[oi.label];
+
+                int color_type = fileManager.obj_labels.IndexOf(o.Info);
+
+                oi.segm_color = Helper.GetColorById(color_type);
+                oi.photo_color = Color.FromArgb(255, RNDC, RNDC, RNDC);
+
+                world.obj_items.Add(oi);
             }
 
-            GL.PushMatrix();
+            return world;
 
-            GL.Translate(pos.X, pos.Y, pos.Z);
-
-            var v4 = q.ToAxisAngle();
-            GL.Rotate(v4.W*(180/(float)Math.PI), v4.Xyz);
-
-            var key = obj_keys[type];
-            var o = objects[key];
-
-            int color_type = obj_labels.IndexOf(o.Info);
-
-            var c = dm == DrawMode.Segmentation ? Helper.GetColorById(color_type) : color_fg;
-            SelectMaterial(o, c, dm);
-
-            bool disable_tex = dm == DrawMode.Segmentation;
-            o.Draw(disable_tex);
-
-            center = OpenTK.Extra.Helper.from3Dto2D(Matrix4.Zero, Matrix4.Zero, null, new Vector3(), out k_3d_to_px);
-            k_3d_to_px *= ((ObjLine)o.UserObject).kframe;
-
-            GL.PopMatrix();
         }
 
 
+        
 
-        public ObjectRegion GetObjectRegion(float width3d)
-        {
-            int[] viewport = new int[4];
-            GL.GetInteger(GetPName.Viewport, viewport);
 
-            var or = new ObjectRegion();
-
-            var key = obj_keys[type];
-            var obj = objects[key];
-            var label_id = label_ids[obj.Info];
-
-            //name = Regex.Replace(name, @"^[\d]+[_\-]", "");
-            or.name = ""+obj.Info;
-
-            var kx = width3d * k_3d_to_px;
-            var ky = width3d * k_3d_to_px;
-
-            or.label_id = label_id;          //i
-            or.xmin = (center.X - kx / 2);
-            or.ymin = (center.Y - ky / 2);
-            or.xmax = (center.X + kx / 2);
-            or.ymax = (center.Y + ky / 2);
-
-            return or;
-        }
     }
 }

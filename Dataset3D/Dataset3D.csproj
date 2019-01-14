@@ -71,6 +71,7 @@
     <Compile Include="Helper.cs" />
     <Compile Include="ObjectCreator.cs" />
     <Compile Include="ObjectSettings.cs" />
+    <Compile Include="Trajectory.cs" />
     <Compile Include="Plane.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

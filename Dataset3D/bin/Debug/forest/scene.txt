@@ -1,0 +1,12 @@
+units: m
+far_plane: 50
+near_plane: 0.1
+scale_default: 1
+rotate_default: 90 0 0
+shift_default: 0 0 0
+light_pos: 10 10 10
+columns: x y z rx ry rz scale file
+0 0 0 0 45 0 1 tree2.obj
+5 5 0 0 0 0 1 tree2.obj
+0 5 0 0 -45 0 1 tree2.obj
+3 3 0 0 0 0 1 human3.obj

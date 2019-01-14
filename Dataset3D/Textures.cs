@@ -42,8 +42,7 @@ namespace Dataset3D
             }
         }
 
-        Random rnd = new Random(1);
-        public Texture GetRandomTexture()
+        public Texture GetRandomTexture(Random rnd)
         {
             var ind = rnd.Next(lst.Count);
             return lst[ind];

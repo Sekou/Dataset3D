@@ -85,54 +85,7 @@ namespace Dataset3D
             return res;
         }
 
-        public static List<float[]> GetRandomPoints(int N,
-            float[] min, float[] max, bool[] active, float k)
-        {
-            var points = new List<float[]>();
-            for (int i = 0; i < N; i++)
-                points.Add(getrnd(min, max));
-
-            for (int i = 0; i < points.Count; i++)
-            {
-                for (int j = i+1; j < points.Count; j++)
-                {
-                    float[] a = points[i], b = points[j];
-                    for (int m = 0; m < active.Length; m++)
-                    {
-                        if (active[m])
-                        {
-                            var d = Math.Max(1, a[m] - b[m]);
-                            var A = (max[m] - min[m]);
-                            var f = k * A/ d / points.Count;
-                            a[m] += f;
-                            b[m] -= f;
-                        }
-                    }
-                }
-            }
-
-            return points;
-        }
-
-        static float getrnd(float min, float max)
-        {
-            return min+(float)rnd.NextDouble() * (max - min);
-        }
-        static float[] getrnd(float[] min, float[] max)
-        {
-            var res = new float[min.Length];
-            for (int i = 0; i < res.Length; i++)
-                res[i] = getrnd(min[i], max[i]);
-            return res;
-        }
-
-        public static void TransformPoints(List<float[]> points, Func<float[], float[]> T)
-        {
-            for (int i = 0; i < points.Count; i++)
-            {
-                points[i]=T(points[i]);
-            }
-        }
+      
 
         public static Color GetColorById(int obj_type)
         {

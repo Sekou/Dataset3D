@@ -8,12 +8,18 @@ namespace Dataset3D
 {
     public class Plane
     {
-        Texture tex;
+        public Texture tex;
         public float w, h;
 
         public Plane(string texturepath, float w, float h)
         {
             tex = new Texture(texturepath);
+            this.w = w;
+            this.h = h;
+        }
+        public Plane(Texture texture, float w, float h)
+        {
+            tex = texture;
             this.w = w;
             this.h = h;
         }

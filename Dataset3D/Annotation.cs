@@ -18,6 +18,9 @@ namespace Dataset3D
         public float xmax;
         public float ymax;
 
+        public float GetW() { return xmax - xmin; }
+        public float GetH() { return ymax - ymin; }
+
         public Vector2 GetCenter() { return new Vector2((xmin + xmax) / 2, (ymin + ymax) / 2); }
 
         public string GetYOLORegion(float W, float H)

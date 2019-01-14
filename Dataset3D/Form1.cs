@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
@@ -18,6 +19,75 @@ namespace Dataset3D
         public Form1()
         {
             InitializeComponent();
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            nud_tint_ValueChanged(null, null);
+
+            control3D1.OnDraw = () =>
+            {
+                if (cb_move.Checked)
+                {
+                    if (!cb_file_world.Checked)
+                    {
+                        DrawAllObjects(t, DrawMode.Normal, random_world);
+                    }
+                    else
+                    {
+                        DrawAllObjects(t, DrawMode.Normal, world);
+                        if(traj!=null && cb_draw_traj.Checked)
+                            traj.Draw();
+                    }
+                }
+            };
+
+            nud_cam_speed_ValueChanged(null, null);
+        }
+        //Camera and viewport params
+        public class ViewportParams
+        {
+            public float nearPlane = 2;
+            public float farPlane = 5000;
+            public float fovRadians;
+            public float aspect;
+            public float camDist = 700;
+            public float wFarPlane;
+            public float hFarPlane;
+
+            public ViewportParams GetCopy()
+            {
+                return (ViewportParams)MemberwiseClone();
+            }
+        }
+        private void bt_reset_Click(object sender, EventArgs e)
+        {
+            loaded = true;
+
+            cube = new Cube(500, 100, 100);
+            axes = new AxesGraphics();
+            //obj = ObjMesh.LoadFromFile("meshes/teapot.obj");
+            b = new Bitmap(control3D1.Width, control3D1.Height);
+
+            oc = new ObjectCreator("meshes", "background", b.Width, b.Height);
+
+            vp = new ViewportParams();
+            vp.aspect = control3D1.Width / (float)control3D1.Height;
+            vp.fovRadians = (float)(80 * Math.PI / 180);
+            var fov2 = vp.fovRadians / 2;
+            // L/2 / far = tn(fov2)
+            // L=2*far*tn(fov2)
+            vp.wFarPlane = 1.05f * (float)(2 * vp.farPlane * Math.Tan(fov2) * vp.aspect);
+            vp.hFarPlane = vp.wFarPlane / vp.aspect;
+
+            InitCamera(vp);
+            GL.Enable(EnableCap.Blend);
+
+            t = 0;
+            smooth_dt = 0;
+            cb_pause.Checked = true;
+
+            lb_frame.Text = "...";
         }
 
         bool loaded = false;
@@ -36,30 +106,20 @@ namespace Dataset3D
         private void control3D1_Load(object sender, EventArgs e)
         {
             bt_reset_Click(null, null);
-        }
+        }       
 
-        float nearPlane = 2;
-        float farPlane = 5000;
-        float fovRadians;
-        float aspect;
+        ViewportParams vp;
 
-        float camDist = 700;
-
-        float wPlane;
-        float hPlane;
-
-        private void InitCamera()
+        private void InitCamera(ViewportParams vp)
         {
             Matrix4 p = Matrix4.CreatePerspectiveFieldOfView(
-                fovRadians=(float)(80 * Math.PI / 180), 
-                aspect=control3D1.Width/(float)control3D1.Height, 
-                nearPlane, farPlane);
+                vp.fovRadians, vp.aspect, vp.nearPlane, vp.farPlane);
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadMatrix(ref p);
             GL.PushMatrix();
 
             Matrix4 modelview = Matrix4.LookAt
-                (camDist, 0, 0, 0, 0, 0, 0, 0, 1);
+                (vp.camDist, 0, 0, 0, 0, 0, 0, 0, 1);
 
             GL.MatrixMode(MatrixMode.Modelview);
             GL.LoadMatrix(ref modelview);
@@ -72,6 +132,16 @@ namespace Dataset3D
         //ОТРИСОВКА ПО ТАЙМЕРУ
         private void timer1_Tick(object sender, EventArgs e)
         {
+            Matrix4 mvm;
+            GL.GetFloat(GetPName.ModelviewMatrix, out mvm);
+            tb_mvm.Text = mvm.ToString();
+
+            if (cb_move.Checked)
+            {
+                control3D1.DrawAll(false, false, !cb_move_traj.Checked, false);
+                return;
+            }
+
             //return;
             if (!loaded) return;
             if (cb_pause.Checked) return;
@@ -79,27 +149,32 @@ namespace Dataset3D
 
             hpt.Start();
 
-            label1.Text = "" + t;
+            lb_frame.Text = "" + t;
 
+            DrawRandom();
+
+            var dt = hpt.Stop();
+            smooth_dt += 0.1f * (dt - smooth_dt);
+            lb_render_time.Text = string.Format("Frame Time: {0:F0} ms", smooth_dt * 1000);
+            t++;
+        }
+
+        //рисует несколько случайных объектов
+        private void DrawRandom()
+        {
             GL.PushMatrix();
 
-            float sz_real = 400;
-
-            var infos = new List<ObjectRegion>();
-
-            var lst = GetOpbjectsPositions();
-
-            infos = DrawAllObjects(t, sz_real, lst, DrawMode.Normal);
+            random_world = DrawAllObjects(t, DrawMode.Normal);
 
             string filename, annot_ext;
-            var annot=GetAnnotation(infos, out filename, out annot_ext);
+            var annot = GetAnnotation(random_world, out filename, out annot_ext);
 
             GL.PopMatrix();
 
             if (cb_save.Checked && t >= 0)
             {
                 b = control3D1.ToBitmap();
-            
+
                 Helper.CheckCreateDir(tb_folder.Text);
                 b.Save(tb_folder.Text + "\\" + filename, System.Drawing.Imaging.ImageFormat.Jpeg);
 
@@ -108,9 +183,9 @@ namespace Dataset3D
                     //правая половинка стереоизображения
                     GL.PushMatrix();
                     GL.Translate(0, -60, 0);
-                    infos = DrawAllObjects(t, sz_real, lst, DrawMode.Normal);
+                    DrawAllObjects(t, DrawMode.Normal, random_world);
                     b = control3D1.ToBitmap();
-                    
+
                     var b2 = DrawDepth();
                     var folder2 = tb_folder.Text + "\\depth";
                     Helper.CheckCreateDir(folder2);
@@ -128,7 +203,7 @@ namespace Dataset3D
                 {
                     //control3D1.SwapBuffers();
 
-                    DrawAllObjects(t, sz_real, lst, DrawMode.Segmentation);
+                    DrawAllObjects(t, DrawMode.Segmentation, random_world);
                     //control3D1.SwapBuffers();
 
                     var b3 = control3D1.ToBitmap();
@@ -136,38 +211,15 @@ namespace Dataset3D
                     Helper.CheckCreateDir(folder3);
                     b3.Save(folder3 + "\\" + filename, System.Drawing.Imaging.ImageFormat.Jpeg);
                     //control3D1.SwapBuffers();
-                    }
+                }
 
                 File.WriteAllText(tb_folder.Text + "\\" + t + annot_ext, annot);
             }
 
             control3D1.SwapBuffers();
-            var dt=hpt.Stop();
-            smooth_dt += 0.1f * (dt - smooth_dt);
-            lb_render_time.Text = string.Format("Frame Time: {0:F4} ms", smooth_dt*1000);
-            t++;
         }
 
-        private List<float[]> GetOpbjectsPositions()
-        {
-            float A = 600;
-
-            var lst = Helper.GetRandomPoints((int)nud_nobj.Value,
-                new float[] { -A, -A, -0.8f * A },
-                new float[] { 0, A, 0.8f * A },
-                new[] { false, true, true }, 1);
-
-            Helper.TransformPoints(lst, pt =>
-            {
-                var k = Math.Abs(pt[0] / A);
-                var k2 = 0.35f;
-                var k3 = (1 - k2 + 2 * k2 * k);
-                return new float[] { pt[0], pt[1] * k3, pt[2] * k3 };
-            });
-            return lst;
-        }
-
-        private string GetAnnotation(List<ObjectRegion> infos, out string filename, out string ext)
+        private string GetAnnotation(World w, out string filename, out string ext)
         {
             filename = t + ".jpg";
             ext = "";
@@ -181,7 +233,7 @@ namespace Dataset3D
                     img_depth = 3,
                     img_width = control3D1.ImageWidth,
                     img_height = control3D1.ImageHeight,
-                    objects = infos
+                    objects = w.obj_items.Select(oi=>oi.frame_info.region).ToList()
                 };
                 rtb_regions.Text = result = annot.ToXml();
                 ext = ".xml";
@@ -189,8 +241,10 @@ namespace Dataset3D
             else
             {
                 var s = string.Join("\r\n",
-                    infos.ConvertAll(x =>
-                    x.GetYOLORegion(Width, Height)));
+                    w.obj_items.Select(oi => 
+                    oi.frame_info.region.GetYOLORegion(
+                        control3D1.ImageWidth, control3D1.ImageHeight)).ToList()
+                  );
 
                 rtb_regions.Text = result = s;
                 ext = ".txt";
@@ -198,25 +252,28 @@ namespace Dataset3D
             return result;
         }
 
-        List<ObjectRegion> DrawAllObjects(int iteration, float sz_real,
-            List<float[]> lst, DrawMode dm)
+        World DrawAllObjects(int iteration, DrawMode dm, World existing_world=null)
         {
-            var result = new List<ObjectRegion>();
-
             //синхронизация цветов фона
-            oc.ResetRandom(iteration);
-            oc.RandomizeBackgroundColor();
+            oc.ResetRandom((existing_world != null) ? existing_world.iteration : iteration);
 
+            var world = (existing_world != null) ? existing_world
+            : oc.GetWorld(iteration, (int)nud_nobj.Value, vp);
+
+            if (existing_world == null)
+                world.backgroung_color = Color.FromArgb(255, oc.RNDC, oc.RNDC, oc.RNDC);
 
             //GL.ClearColor(Color.Blue);
 
             if (dm == DrawMode.Normal)
             {
-                Control3D.ClearColor(oc.color_bg);
+                Control3D.ClearColor(world.backgroung_color);
 
                 if (oc.rnd.NextDouble() < (double)nud_ptex.Value)
                 {
-                    DrawBackground();
+                    //BACKGROUND
+#warning move into PlaneObjItem:ObjectItem
+                    DrawBackground(world, vp);
                 }
             }
             else if (dm == DrawMode.Segmentation)
@@ -228,55 +285,41 @@ namespace Dataset3D
 
             if (cb_draw_axes.Checked)
             {
-                GL.Disable(EnableCap.Lighting);
                 axes.Draw(true, true, false);
             }
-
-            //синхронизация типов объектов
-            oc.ResetRandom(iteration);
-
-            for (int i = 0; i < lst.Count; i++)
+         
+            world.Draw(dm, (o) =>
             {
-                //отрисовка объектов
-                oc.RandomizeForegroundColor();
-                var obj = DrawObj(oc, sz_real, lst, i, dm);
-                result.Add(obj);
-            }
+                if (cb_draw_bb.Checked)
+                {
+                    var info = o.frame_info;
+                    var szw = o.frame_info.region.GetW();
+                    var szh = o.frame_info.region.GetH();
+                    DrawRect(info.center.X, info.center.Y, szw, szh);
+                }
+            });
+
             //control3D1.SwapBuffers();
-            return result;
+
+            return world;
         }
 
-        private ObjectRegion DrawObj(ObjectCreator oc, float sz_real, List<float[]> points, int ind, 
-            DrawMode dm)
-        {
-            var p=oc.RandomizePose(points[ind]);
-
-            oc.Draw(dm);
-
-            if (cb_draw_bb.Checked)
-            {
-                var sz_px = sz_real * oc.k_3d_to_px;// (float)Math.Pow(oc.k_3d_to_px, 1.1);
-                DrawRect(oc.center.X, oc.center.Y, sz_px, sz_px);
-            }
-
-            return oc.GetObjectRegion(sz_real);
-        }
-
-        public void DrawBackground()
+        public void DrawBackground(World world, ViewportParams vp)
         {
             GL.PushMatrix();
             //GL.LoadIdentity();
-            GL.Translate(-farPlane+camDist+100, 0, 0);
+            GL.Translate(-vp.farPlane + vp.camDist + 100, 0, 0);
             //GL.Rotate(90, 0, 0, 1);
             GL.Rotate(90, 0, 1, 0);
             GL.Rotate(90, 0, 0, 1);
-            Plane.DrawTexture(texs.GetRandomTexture(), wPlane, hPlane);
+            Plane.DrawTexture(world.plane.tex, vp.wFarPlane, vp.wFarPlane);
             GL.PopMatrix();
         }
 
         void DrawRect(float xc, float yc, float w, float h)
         {
             GL.Disable(EnableCap.Lighting);
+            GL.Disable(EnableCap.Texture2D);
             GL.Color3(Color.Red);
             int[] viewport = new int[4];
             GL.GetInteger(GetPName.Viewport, viewport);
@@ -300,7 +343,6 @@ namespace Dataset3D
             GL.End();
             GL.PopMatrix();
             GL.MatrixMode(MatrixMode.Modelview); GL.PopMatrix();
-            GL.Enable(EnableCap.Lighting);
         }
 
         private void nud_tint_ValueChanged(object sender, EventArgs e)
@@ -308,10 +350,7 @@ namespace Dataset3D
             timer1.Interval = (int)nud_tint.Value;
         }
 
-        private void Form1_Load(object sender, EventArgs e)
-        {
-            nud_tint_ValueChanged(null, null);
-        }
+ 
 
         Bitmap lastDepthMap;
         public Bitmap DrawDepth()
@@ -324,7 +363,7 @@ namespace Dataset3D
             GL.ReadPixels(0, 0, w, h, PixelFormat.DepthComponent, PixelType.Float, depth_arr);
 
             for (int i = 0; i < L; i++)
-                depth_arr[i] = FixDepth(depth_arr[i], nearPlane, farPlane)/farPlane;
+                depth_arr[i] = FixDepth(depth_arr[i], vp.nearPlane, vp.farPlane)/ vp.farPlane;
 
             lastDepthMap = Helper.BitmapFromFloatsGrayscale(depth_arr, w, h);
             lastDepthMap.RotateFlip(RotateFlipType.RotateNoneFlipY);
@@ -341,7 +380,7 @@ namespace Dataset3D
             GL.ReadPixels(0, 0, w, h, PixelFormat.DepthComponent, PixelType.Float, depth_arr);
 
             for (int i = 0; i < L; i++)
-                depth_arr[i] = FixDepth(depth_arr[i], nearPlane, farPlane) / farPlane;
+                depth_arr[i] = FixDepth(depth_arr[i], vp.nearPlane, vp.farPlane) / vp.farPlane;
 
             lastDepthMap = Helper.BitmapFromFloatsGrayscale(depth_arr, w, h);
             lastDepthMap.RotateFlip(RotateFlipType.RotateNoneFlipY);
@@ -363,34 +402,6 @@ namespace Dataset3D
             Process.Start(@"c:\windows\explorer.exe", tb_folder.Text);
         }
 
-        private void bt_reset_Click(object sender, EventArgs e)
-        {
-            loaded = true;
-
-            cube = new Cube(500, 100, 100);
-            axes = new AxesGraphics();
-            //obj = ObjMesh.LoadFromFile("meshes/teapot.obj");
-            b = new Bitmap(control3D1.Width, control3D1.Height);
-
-            oc = new ObjectCreator("meshes/", b.Width, b.Height);
-            oc.RandomizePose(null);
-
-            InitCamera();
-            GL.Enable(EnableCap.Blend);
-
-            var fov2 = fovRadians / 2;
-            // L/2 / far = tn(fov2)
-            // L=2*far*tn(fov2)
-            wPlane = 0.98f * (float)(2 * farPlane * Math.Tan(fov2) * aspect);
-            hPlane = wPlane / aspect;
-
-            texs = new Textures("background");
-
-            t = 0;
-            smooth_dt = 0;
-            cb_pause.Checked = true;
-        }
-
         private void cb_hide_CheckedChanged(object sender, EventArgs e)
         {
             if(cb_hide.Checked) control3D1.Hide();
@@ -398,23 +409,44 @@ namespace Dataset3D
         }
 
         World world;
+        SimpleTrajectory traj;
+
+        World random_world;
+
         private void bt_load_world_Click(object sender, EventArgs e)
         {
-            var arr = tb_shift.Text.Split(' ');
-            var arr2 = Array.ConvertAll(arr, a => float.Parse(a));
+            var fm = new FileManager(Helper.CorrectPath(tb_scene.Text + "/" + "meshes"));
+            world = new World(Helper.CorrectPath(tb_scene.Text + "/" + "scene.txt"), fm);
 
-            world = new World("scenes/forest1.txt");
+            traj = new SimpleTrajectory(Helper.CorrectPath(tb_scene.Text + "/" + "traj.txt"));
+            nud_cam.Maximum = traj.points.Count - 1;
 
-            InitCamera();
+            InitCamera2();
+        }
 
-            GL.PushMatrix();
-            GL.Translate(arr2[0], arr2[1], arr2[2]);
-            GL.Scale(1000, 1000, 1000);
-            world.Draw();
-            control3D1.SwapBuffers();
+        private void InitCamera2()
+        {
+            var vp2 = vp.GetCopy();
+            vp2.farPlane = world.P.farPlane;
+            vp2.nearPlane = world.P.nearPlane;
+            InitCamera(vp2);
+        }
 
-            GL.PopMatrix();
+        private void nud_cam_speed_ValueChanged(object sender, EventArgs e)
+        {
+            control3D1.MoveSpeed = (float)nud_cam_speed.Value;
+        }
 
+        private void nud_cam_ValueChanged(object sender, EventArgs e)
+        {
+            if(traj!=null && cb_move_traj.Checked)
+            {
+                var ind = (float)nud_cam.Value;
+                if (ind < traj.points.Count)
+                {
+                    traj.SetCamAtPoint((float)nud_cam.Value);
+                }
+            }
         }
     }
 }
