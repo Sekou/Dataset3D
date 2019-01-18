@@ -5,8 +5,10 @@ scale_default: 1
 rotate_default: 90 0 0
 shift_default: 0 0 0
 light_pos: 10 10 10
-columns: x y z rx ry rz scale file
-0 0 0 0 45 0 1 tree2.obj
-5 5 0 0 0 0 1 tree2.obj
-0 5 0 0 -45 0 1 tree2.obj
-3 3 0 0 0 0 1 human3.obj
+background_color: #7777AA
+columns: x y z rx ry rz scale file color
+0 0 0 0 0 0 10 unit-plane-xy.obj #773300
+1 0 0 0 0 40 1 tree2.obj #773300
+5 5 0 0 0 0 1 tree2.obj #773300
+0 5 0 0 0 -45 1 tree2.obj #773300
+3 3 0 0 0 0 1 human3.obj #773300

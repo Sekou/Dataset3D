@@ -38,7 +38,7 @@ namespace Dataset3D
             var name = "scenes" + Path.DirectorySeparatorChar + arr.Last();
 
             var lst = new List<string>(arr);
-            lst.RemoveAt(lst.Count - 1);
+            lst.RemoveRange(lst.Count - 2, 2);
             var P = lst.ConvertAll(x => float.Parse(x, CultureInfo.InvariantCulture));
 
             var IC = CultureInfo.InvariantCulture;
@@ -56,7 +56,8 @@ namespace Dataset3D
             ShiftTransform = Matrix4.CreateTranslation(
                 P[0] * world.P.GlobalScale, P[1] * world.P.GlobalScale, P[2] * world.P.GlobalScale);
 
-            mesh = fileManager.objects[arr.Last()];
+            mesh = fileManager.objects[arr[arr.Length-2]];
+            photo_color = ColorTranslator.FromHtml(arr[arr.Length - 1]);
         }
         public void Draw(DrawMode dm, WorldParams P)
         {
@@ -64,8 +65,10 @@ namespace Dataset3D
 
             if(P!=null) GL.MultMatrix(ref P.GlobalShiftTransform);
             GL.MultMatrix(ref ShiftTransform);
-            if (P != null) GL.MultMatrix(ref P.GlobalRotTransform);
             GL.MultMatrix(ref RotTransform);
+
+            if (P != null) GL.MultMatrix(ref P.GlobalRotTransform);
+
 
             var color = photo_color;
             if (dm == DrawMode.Segmentation) color = segm_color;
@@ -161,6 +164,7 @@ namespace Dataset3D
         public float nearPlane;
         public float farPlane;
         public float[] light_pos;
+        public Color background_color;
 
         public WorldParams() { }
         public WorldParams(List<string> lines)
@@ -194,6 +198,8 @@ namespace Dataset3D
 
             light_pos = Array.ConvertAll(dict["light_pos"].Split(' '),
                 x => float.Parse(x, IC)*k);
+
+            background_color = ColorTranslator.FromHtml(dict["background_color"]);
         }
     }
 
@@ -225,8 +231,8 @@ namespace Dataset3D
                 {
                     if (P == null) P = new WorldParams(param_lines);
                     var obj_item = new ObjItem(lines[i], fileManager, this);
-                    obj_item.photo_color = Color.Orange;
                     obj_items.Add(obj_item);
+                    backgroung_color = P.background_color;
                 }
             }
         }

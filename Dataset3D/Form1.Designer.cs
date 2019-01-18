@@ -68,12 +68,17 @@
             this.control3D1 = new OpenTK.Extra.Control3D();
             this.label8 = new System.Windows.Forms.Label();
             this.tb_projm = new System.Windows.Forms.TextBox();
+            this.bt_save_traj_ds = new System.Windows.Forms.Button();
+            this.nud_tint2 = new System.Windows.Forms.NumericUpDown();
+            this.label9 = new System.Windows.Forms.Label();
+            this.cb_pause_draw = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.nud_tint)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_max_images)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_ptex)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_nobj)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_cam_speed)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_cam)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nud_tint2)).BeginInit();
             this.SuspendLayout();
             // 
             // timer1
@@ -87,7 +92,7 @@
             this.rtb_regions.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.rtb_regions.Location = new System.Drawing.Point(584, 32);
             this.rtb_regions.Name = "rtb_regions";
-            this.rtb_regions.Size = new System.Drawing.Size(262, 382);
+            this.rtb_regions.Size = new System.Drawing.Size(262, 346);
             this.rtb_regions.TabIndex = 1;
             this.rtb_regions.Text = "";
             // 
@@ -230,7 +235,7 @@
             // rb_simple
             // 
             this.rb_simple.AutoSize = true;
-            this.rb_simple.Location = new System.Drawing.Point(650, 421);
+            this.rb_simple.Location = new System.Drawing.Point(643, 383);
             this.rb_simple.Margin = new System.Windows.Forms.Padding(2);
             this.rb_simple.Name = "rb_simple";
             this.rb_simple.Size = new System.Drawing.Size(69, 17);
@@ -242,7 +247,7 @@
             // 
             this.rb_xml.AutoSize = true;
             this.rb_xml.Checked = true;
-            this.rb_xml.Location = new System.Drawing.Point(736, 420);
+            this.rb_xml.Location = new System.Drawing.Point(729, 382);
             this.rb_xml.Margin = new System.Windows.Forms.Padding(2);
             this.rb_xml.Name = "rb_xml";
             this.rb_xml.Size = new System.Drawing.Size(47, 17);
@@ -361,9 +366,9 @@
             this.tb_scene.Location = new System.Drawing.Point(127, 457);
             this.tb_scene.Margin = new System.Windows.Forms.Padding(2);
             this.tb_scene.Name = "tb_scene";
-            this.tb_scene.Size = new System.Drawing.Size(406, 20);
+            this.tb_scene.Size = new System.Drawing.Size(358, 20);
             this.tb_scene.TabIndex = 26;
-            this.tb_scene.Text = "forest";
+            this.tb_scene.Text = "big_forest";
             // 
             // cb_move
             // 
@@ -389,7 +394,7 @@
             this.cb_file_world.AutoSize = true;
             this.cb_file_world.Checked = true;
             this.cb_file_world.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cb_file_world.Location = new System.Drawing.Point(538, 459);
+            this.cb_file_world.Location = new System.Drawing.Point(509, 461);
             this.cb_file_world.Name = "cb_file_world";
             this.cb_file_world.Size = new System.Drawing.Size(73, 17);
             this.cb_file_world.TabIndex = 29;
@@ -441,7 +446,7 @@
             0,
             0,
             65536});
-            this.nud_cam.Location = new System.Drawing.Point(700, 455);
+            this.nud_cam.Location = new System.Drawing.Point(629, 455);
             this.nud_cam.Maximum = new decimal(new int[] {
             10000,
             0,
@@ -455,7 +460,7 @@
             // cb_move_traj
             // 
             this.cb_move_traj.AutoSize = true;
-            this.cb_move_traj.Location = new System.Drawing.Point(624, 457);
+            this.cb_move_traj.Location = new System.Drawing.Point(629, 432);
             this.cb_move_traj.Name = "cb_move_traj";
             this.cb_move_traj.Size = new System.Drawing.Size(74, 17);
             this.cb_move_traj.TabIndex = 33;
@@ -484,7 +489,7 @@
             this.cb_draw_traj.AutoSize = true;
             this.cb_draw_traj.Checked = true;
             this.cb_draw_traj.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cb_draw_traj.Location = new System.Drawing.Point(766, 457);
+            this.cb_draw_traj.Location = new System.Drawing.Point(629, 409);
             this.cb_draw_traj.Name = "cb_draw_traj";
             this.cb_draw_traj.Size = new System.Drawing.Size(72, 17);
             this.cb_draw_traj.TabIndex = 36;
@@ -520,11 +525,72 @@
             this.tb_projm.Size = new System.Drawing.Size(758, 20);
             this.tb_projm.TabIndex = 37;
             // 
+            // bt_save_traj_ds
+            // 
+            this.bt_save_traj_ds.Location = new System.Drawing.Point(740, 405);
+            this.bt_save_traj_ds.Name = "bt_save_traj_ds";
+            this.bt_save_traj_ds.Size = new System.Drawing.Size(83, 23);
+            this.bt_save_traj_ds.TabIndex = 39;
+            this.bt_save_traj_ds.Text = "Save Dataset";
+            this.bt_save_traj_ds.UseVisualStyleBackColor = true;
+            this.bt_save_traj_ds.Click += new System.EventHandler(this.bt_save_traj_ds_Click);
+            // 
+            // nud_tint2
+            // 
+            this.nud_tint2.DecimalPlaces = 1;
+            this.nud_tint2.Increment = new decimal(new int[] {
+            1,
+            0,
+            0,
+            131072});
+            this.nud_tint2.Location = new System.Drawing.Point(752, 455);
+            this.nud_tint2.Maximum = new decimal(new int[] {
+            10,
+            0,
+            0,
+            0});
+            this.nud_tint2.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            65536});
+            this.nud_tint2.Name = "nud_tint2";
+            this.nud_tint2.Size = new System.Drawing.Size(59, 20);
+            this.nud_tint2.TabIndex = 40;
+            this.nud_tint2.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
+            // label9
+            // 
+            this.label9.AutoSize = true;
+            this.label9.Location = new System.Drawing.Point(748, 433);
+            this.label9.Name = "label9";
+            this.label9.Size = new System.Drawing.Size(68, 13);
+            this.label9.TabIndex = 41;
+            this.label9.Text = "Time Interval";
+            // 
+            // cb_pause_draw
+            // 
+            this.cb_pause_draw.AutoSize = true;
+            this.cb_pause_draw.Location = new System.Drawing.Point(770, 6);
+            this.cb_pause_draw.Name = "cb_pause_draw";
+            this.cb_pause_draw.Size = new System.Drawing.Size(56, 17);
+            this.cb_pause_draw.TabIndex = 42;
+            this.cb_pause_draw.Text = "Pause";
+            this.cb_pause_draw.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(860, 540);
+            this.Controls.Add(this.cb_pause_draw);
+            this.Controls.Add(this.label9);
+            this.Controls.Add(this.nud_tint2);
+            this.Controls.Add(this.bt_save_traj_ds);
             this.Controls.Add(this.label8);
             this.Controls.Add(this.tb_projm);
             this.Controls.Add(this.cb_draw_traj);
@@ -572,6 +638,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.nud_nobj)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_cam_speed)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_cam)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nud_tint2)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -617,6 +684,10 @@
         private System.Windows.Forms.CheckBox cb_draw_traj;
         private System.Windows.Forms.Label label8;
         private System.Windows.Forms.TextBox tb_projm;
+        private System.Windows.Forms.Button bt_save_traj_ds;
+        private System.Windows.Forms.NumericUpDown nud_tint2;
+        private System.Windows.Forms.Label label9;
+        private System.Windows.Forms.CheckBox cb_pause_draw;
     }
 }
 

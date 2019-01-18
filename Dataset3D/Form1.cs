@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Windows.Forms;
 using System.Xml;
 
@@ -21,18 +22,22 @@ namespace Dataset3D
             InitializeComponent();
         }
 
+
         private void Form1_Load(object sender, EventArgs e)
         {
             nud_tint_ValueChanged(null, null);
 
             control3D1.OnDraw = () =>
             {
+                if (cb_pause_draw.Checked) return;
+
+                hpt.Start();
                 if (cb_move.Checked)
                 {
                     if (cb_file_world.Checked && file_world!=null)
                     {
                         //InitCamera2();
-                        DrawAllObjects(t, DrawMode.Normal, file_world);
+                        DrawAllObjects(-1, DrawMode.Normal, file_world);
                         if (traj != null && cb_draw_traj.Checked)
                             traj.Draw();
                     }
@@ -42,6 +47,9 @@ namespace Dataset3D
                         DrawAllObjects(t, DrawMode.Normal, random_world);
                     }
                 }
+                var dt=hpt.Stop();
+                smooth_dt += 0.1f * (dt - smooth_dt);
+                lb_render_time.Text = string.Format("Frame Time: {0:F0} ms", smooth_dt * 1000);
             };
 
             nud_cam_speed_ValueChanged(null, null);
@@ -135,6 +143,8 @@ namespace Dataset3D
         //ОТРИСОВКА ПО ТАЙМЕРУ
         private void timer1_Tick(object sender, EventArgs e)
         {
+            if (cb_pause_draw.Checked) return;
+
             Matrix4 mvm, projm;
             GL.GetFloat(GetPName.ModelviewMatrix, out mvm);
             GL.GetFloat(GetPName.ProjectionMatrix, out projm);
@@ -142,8 +152,6 @@ namespace Dataset3D
             projm.Transpose();
             tb_mvm.Text = mvm.ToString();
             tb_projm.Text = projm.ToString();
-
-
 
             if (cb_move.Checked)
             {
@@ -271,7 +279,7 @@ namespace Dataset3D
             
             if (existing_world == null)
             {
-                world= oc.GetWorld(iteration, (int)nud_nobj.Value, vp);
+                world = oc.GetWorld(iteration, (int)nud_nobj.Value, vp);
                 world.backgroung_color = Color.FromArgb(255, oc.RNDC, oc.RNDC, oc.RNDC);
 
                 world.plane = null;
@@ -419,7 +427,7 @@ namespace Dataset3D
 
         private void bt_open_folder_Click(object sender, EventArgs e)
         {
-            Process.Start(@"c:\windows\explorer.exe", tb_folder.Text);
+            Process.Start(@"explorer.exe", tb_folder.Text);
         }
 
         private void cb_hide_CheckedChanged(object sender, EventArgs e)
@@ -439,7 +447,7 @@ namespace Dataset3D
             file_world = new World(Helper.CorrectPath(tb_scene.Text + "/" + "scene.txt"), fm);
 
             traj = new SimpleTrajectory(Helper.CorrectPath(tb_scene.Text + "/" + "traj.txt"));
-            nud_cam.Maximum = traj.points.Count - 1;
+            nud_cam.Maximum = (decimal)traj.GetMaxTime();
 
             InitCamera2();
         }
@@ -459,14 +467,51 @@ namespace Dataset3D
 
         private void nud_cam_ValueChanged(object sender, EventArgs e)
         {
+            if (cb_pause.Checked) return;
             if(traj!=null && cb_move_traj.Checked)
             {
                 var ind = (float)nud_cam.Value;
                 if (ind < traj.points.Count)
                 {
-                    traj.SetCamAtPoint((float)nud_cam.Value);
+                    traj.SetCamAtTime((float)nud_cam.Value);
                 }
             }
+        }
+
+        private void bt_save_traj_ds_Click(object sender, EventArgs e)
+        {
+            var b1 = cb_move.Checked; cb_move.Checked = true;
+            var b2 = cb_draw_traj.Checked; cb_draw_traj.Checked = false;
+            var b3 = cb_move_traj.Checked; cb_move_traj.Checked = true;
+            var b4 = cb_pause.Checked; cb_pause.Checked = true;
+
+            if (file_world == null || traj == null)
+            {
+                MessageBox.Show("Load world and trajectory first");
+                return;
+            }
+            
+            int ind = -1;
+            for (float t = 0; t <= traj.GetMaxTime(); t+=(float)nud_tint2.Value, ind++)
+            {
+                traj.SetCamAtTime(t);
+                DrawAllObjects(-1, DrawMode.Normal, file_world);
+                control3D1.DrawAll(false, false, false, false);
+
+                if (ind < 0) continue;
+                var path = Helper.CorrectPath(tb_folder.Text + "/" + tb_scene.Text+"/");
+                Helper.CheckCreateDir(path);
+                control3D1.ToBitmap().Save(path + ind + ".jpg", System.Drawing.Imaging.ImageFormat.Jpeg);
+
+                nud_cam.Value = (decimal) t;
+                Application.DoEvents();
+
+            }
+
+            cb_move.Checked = b1;
+            cb_draw_traj.Checked = b2;
+            cb_move_traj.Checked = b3;
+            cb_pause.Checked = b4;
         }
     }
 }

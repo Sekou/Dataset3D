@@ -10,9 +10,21 @@ using System.Text;
 
 namespace Dataset3D
 {
+
+    public class Pt
+    {
+       public Vector3 p;
+       public float time;
+    }
+
     public class SimpleTrajectory
     {
-        public List<Vector3> points = new List<Vector3>();
+        public List<Pt> points = new List<Pt>();
+
+        public float GetMaxTime()
+        {
+            return points[points.Count - 1].time;
+        }
 
         float Scale = 1;
 
@@ -38,7 +50,7 @@ namespace Dataset3D
                 var arr = lines[i].Split(' ');
                 var arr2 = Array.ConvertAll(arr, 
                     x => float.Parse(x, CultureInfo.InvariantCulture));
-                points.Add(new Vector3(arr2[0], arr2[1], arr2[2]));
+                points.Add(new Pt { p = new Vector3(arr2[1], arr2[2], arr2[3]), time = arr2[0] });
             }
         }
         public void Draw()
@@ -54,7 +66,7 @@ namespace Dataset3D
             GL.Begin(PrimitiveType.Points);
             for (int i = 0; i < points.Count; i++)
             {
-                var pt = points[i] * Scale;
+                var pt = points[i].p * Scale;
                 GL.Color3(Color.Yellow);
                 GL.Vertex3(pt[0], pt[1], pt[2]);
             }
@@ -63,7 +75,7 @@ namespace Dataset3D
             GL.Begin(PrimitiveType.LineStrip);
             for (int i = 0; i < points.Count; i++)
             {
-                var pt = points[i] * Scale;
+                var pt = points[i].p * Scale;
                 GL.Color3(Color.Orange);
                 GL.Vertex3(pt[0], pt[1], pt[2]);
             }
@@ -103,8 +115,8 @@ namespace Dataset3D
         {
             if (ind == points.Count - 1) ind--;
 
-            var at = points[ind + 1];
-            var eye = points[ind];
+            var at = points[ind + 1].p;
+            var eye = points[ind].p;
 
             var m=GetCamDir(eye, at);
 
@@ -115,12 +127,12 @@ namespace Dataset3D
             if (ind == points.Count - 1) ind--;
             if (ind == points.Count - 2) ind--;
 
-            var p1 = points[ind];
-            var p2 = points[ind + 1];
-            var p3 = points[ind + 2];
+            var p1 = points[ind].p;
+            var p2 = points[ind + 1].p;
+            var p3 = points[ind + 2].p;
 
-            var eye = knext * p2 + (1 - knext) * p1;
-            var at = knext * p3 + (1 - knext) * p2;
+            var eye = p1 + knext * (p2 - p1);
+            var at = p2 + knext * (p3 - p2);
 
             var m=GetCamDir(eye, at);
 
@@ -129,16 +141,15 @@ namespace Dataset3D
         public Matrix4 InterpolateCamPos(int ind, float knext)
         {
             Vector3 v;
-            if (ind >= points.Count - 1) v = points[points.Count - 1];
+            if (ind >= points.Count - 1) v = points[points.Count - 1].p;
             else
             {
-                var p1 = points[ind];
-                var p2 = points[ind + 1];
-
+                var p1 = points[ind].p;
+                var p2 = points[ind + 1].p;
                 v = p2 * knext + p1 * (1 - knext);
             }
 
-            return Matrix4.CreateTranslation(-v*Scale);
+            return Matrix4.CreateTranslation(-v * Scale);
         }
         public void SetCamAtPoint(float indF)
         {
@@ -152,6 +163,28 @@ namespace Dataset3D
 
             GL.MatrixMode(MatrixMode.Modelview);
             GL.LoadMatrix(ref T);
+        }
+        public void SetCamAtTime(float time)
+        {
+            int ind = 0;
+            float t = float.MinValue;
+            for (int i = 0; ; i++)
+            {
+                if (points[i].time >= time || i==points.Count)
+                {
+                    ind = Math.Max(0, i-1);
+                    t = points[i].time;
+                    break;
+                }
+            }
+
+            float k = 0;
+            var d1 = time - points[ind].time;
+            var d2 = points[ind+1].time - time;
+            k = d1 / (d1 + d2);
+
+            SetCamAtPoint(ind + k);
+
         }
     }
 }
