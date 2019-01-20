@@ -2,5 +2,8 @@
 {"name":"default","rot":[0.0,0.0,0.0],"scale":1,"pos":[0.0,0.0,0.0],"kframe":1.2},
 {"name":"01-sphere","kframe":1.5},
 {"name":"03-cube.obj","label":"cube","kframe":1.2},
-{"name":"05-tex-cube.obj","label":"cube","rot":[0.0,0.0,0.0],"scale":200,"pos":[0.0,0.0,0.0],"kframe":1.2}
+{"name":"05-tex-cube.obj","label":"cube","rot":[0.0,0.0,0.0],"scale":200,"pos":[0.0,0.0,0.0],"kframe":1.2},
+{"name":"06-human.obj","rot":[0.0,0.0,0.0],"scale":200,"pos":[0.0,0.0,0.0],"kframe":1.2},
+{"name":"07-tree.obj","rot":[0.0,0.0,0.0],"scale":200,"pos":[0.0,0.0,0.0],"kframe":1.2}
+
 ]}
