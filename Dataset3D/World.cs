@@ -80,7 +80,7 @@ namespace Dataset3D
 
             frame_info = new ObjItemFrameInfo();
             frame_info.center = OpenTK.Extra.Helper.from3Dto2D(Matrix4.Zero, Matrix4.Zero,
-                null, mesh.Center * AllScale, out frame_info.k_3d_to_px);
+                null, mesh.Center * AllScale*mesh.Scale[0], out frame_info.k_3d_to_px);
 
             frame_info.k_3d_to_px *= ((ObjLine)mesh.UserObject).kframe;
             frame_info.region = GetObjectRegion(P, frame_info);
