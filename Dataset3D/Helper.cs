@@ -91,6 +91,48 @@ namespace Dataset3D
         {
             return colors[obj_type];
         }
+
+        public static void NormalizeAng(ref float x)
+        {
+            var pi = (float)Math.PI;
+            var pi2 = (float)Math.PI * 2;
+            while (x > pi) x -= pi2;
+            while (x < -pi) x += pi2;
+        }
+
+        static ImageCodecInfo GetEncoder(ImageFormat format)
+        {
+            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
+            foreach (ImageCodecInfo codec in codecs)
+            {
+                if (codec.FormatID == format.Guid)
+                {
+                    return codec;
+                }
+            }
+            return null;
+        }
+        public static ImageCodecInfo jgpEncoder = GetEncoder(ImageFormat.Jpeg);
+
+        public static EncoderParameters GetJpgQualityParams(int percents)
+        {
+            var myEncoderParameters = new EncoderParameters(1);
+
+            var myEncoderParameter = new EncoderParameter(Encoder.Quality,
+                (long)percents);
+            myEncoderParameters.Param[0] = myEncoderParameter;
+
+            return myEncoderParameters;
+        }
+
+        public static void SaveJPG(Bitmap b, string path)
+        {
+            b.Save(path, jgpEncoder, GetJpgQualityParams(90));
+        }
+        public static void SavePNG(Bitmap b, string path)
+        {
+            b.Save(path, ImageFormat.Png);
+        }
     }
 
     public class HiPerfTimer

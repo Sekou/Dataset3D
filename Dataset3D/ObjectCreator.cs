@@ -248,6 +248,11 @@ namespace Dataset3D
                 oi.segm_color = Helper.GetColorById(color_type);
                 oi.photo_color = Color.FromArgb(255, RNDC, RNDC, RNDC);
 
+                oi.no_frame = ((ObjLine)oi.mesh.UserObject).no_frame;
+                oi.draw_always = ((ObjLine)oi.mesh.UserObject).draw_always;
+                oi.kframe = ((ObjLine)oi.mesh.UserObject).kframe;
+                oi.k_sz_xy = ((ObjLine)oi.mesh.UserObject).k_sz_xy;
+
                 world.obj_items.Add(oi);
             }
 

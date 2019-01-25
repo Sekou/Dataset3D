@@ -7,6 +7,7 @@ using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using static Dataset3D.Form1;
 
 namespace Dataset3D
 {
@@ -23,13 +24,17 @@ namespace Dataset3D
         public Color segm_color;
 
         //temporary params of the object related to its position in a frame
-        public ObjItemFrameInfo frame_info;
+        public ObjItemFrameInfo frame_info=new ObjItemFrameInfo();
 
         public int type { get; set; } //e.g. 111 or 112
         public string filename{ get; set; } //e.g. box_a.obj or box_b.obj
         public string name { get { return mesh.Name; } }//e.g. box_a or box_b
         public string label { get { return mesh.Info; } }//e.g. box in both cases
         public int label_id { get; set; } //e.g. 1 in both cases
+        public bool no_frame { get; set; } //doesn't require classification
+        public bool draw_always { get; set; } //draw even if center goes out of camera FOV
+        public float kframe { get; set; } //frame size multiplier
+        public float k_sz_xy { get; set; } //ratio of xy size to maximum object size (for trees obstacle calculation)
 
         public ObjItem() { }
         public ObjItem(string line, FileManager fileManager, World world)
@@ -58,17 +63,39 @@ namespace Dataset3D
 
             mesh = fileManager.objects[arr[arr.Length-2]];
             photo_color = ColorTranslator.FromHtml(arr[arr.Length - 1]);
+
+#warning copy all other transform.json fields from mesh into here as in ObjCreator line 230
+            no_frame = ((ObjLine)mesh.UserObject).no_frame;
+            draw_always = ((ObjLine)mesh.UserObject).draw_always;
+            kframe = ((ObjLine)mesh.UserObject).kframe;
+            k_sz_xy = ((ObjLine)mesh.UserObject).k_sz_xy;
+
+        }
+
+        public Matrix4 GetTransform(WorldParams P)
+        {
+            Matrix4 res;
+            if (P != null)
+                res = P.GlobalShiftTransform;
+            else res = Matrix4.Identity;
+
+            res = ShiftTransform * res;
+            res = RotTransform * res;
+            if (P != null) res = P.GlobalRotTransform * res;
+
+            return res;
+
         }
         public void Draw(DrawMode dm, WorldParams P)
         {
             GL.PushMatrix();
 
-            if(P!=null) GL.MultMatrix(ref P.GlobalShiftTransform);
-            GL.MultMatrix(ref ShiftTransform);
-            GL.MultMatrix(ref RotTransform);
-
-            if (P != null) GL.MultMatrix(ref P.GlobalRotTransform);
-
+            var T = GetTransform(P);
+            GL.MultMatrix(ref T);
+            //if (P!=null) GL.MultMatrix(ref P.GlobalShiftTransform);
+            //GL.MultMatrix(ref ShiftTransform);
+            //GL.MultMatrix(ref RotTransform);
+            //if (P != null) GL.MultMatrix(ref P.GlobalRotTransform);
 
             var color = photo_color;
             if (dm == DrawMode.Segmentation) color = segm_color;
@@ -76,14 +103,17 @@ namespace Dataset3D
             SelectMaterial(mesh.IsTextured, color, dm);
 
             var AllScale = InPlaceScale * P.GlobalScale;
-            mesh.Draw(disable_tex: dm != DrawMode.Normal, scale:AllScale);
+            mesh.Draw(disable_tex: dm != DrawMode.Normal, scale : AllScale);
 
-            frame_info = new ObjItemFrameInfo();
-            frame_info.center = OpenTK.Extra.Helper.from3Dto2D(Matrix4.Zero, Matrix4.Zero,
-                null, mesh.Center * AllScale*mesh.Scale[0], out frame_info.k_3d_to_px);
+            if (!frame_info.no_frame)
+            {
+                //frame_info = new ObjItemFrameInfo();
+                frame_info.center = OpenTK.Extra.Helper.from3Dto2D(Matrix4.Zero, Matrix4.Zero,
+                    null, mesh.Center * AllScale * mesh.Scale[0], out frame_info.k_3d_to_px);
 
-            frame_info.k_3d_to_px *= ((ObjLine)mesh.UserObject).kframe;
-            frame_info.region = GetObjectRegion(P, frame_info);
+                frame_info.k_3d_to_px *= kframe;
+                frame_info.region = GetObjectRegion(P, frame_info);
+            }
 
             GL.PopMatrix();
         }
@@ -153,6 +183,8 @@ namespace Dataset3D
         public Vector2 center; //object center on a screen in pixels
         public float k_3d_to_px; //3d world units to pixels ratio
         public ObjectRegion region; //rectangle region on screen
+        public float dx, dy, distance;//distance from object to camera
+        public bool no_frame;//hides frame
     }
 
         //Global params for all objects in a file
@@ -238,7 +270,7 @@ namespace Dataset3D
         }
 
 #warning test
-        public void Draw(DrawMode dm, Action<ObjItem> onObjDraw)
+        public void Draw(DrawMode dm, CamParams cp, float maxDistFromCam, bool obstacles, Action<ObjItem> onObjDraw)
         {
             if (dm == DrawMode.Normal)
             {
@@ -252,8 +284,11 @@ namespace Dataset3D
 
             GL.PushMatrix();
 
-            for (int i = 0; i < obj_items.Count; i++)
+            var obj_items2 = FilterObjectsInFOV(cp);
+
+            for (int i = 0; i < obj_items2.Count; i++)
             {
+                var oi = obj_items2[i];
 
                 if (dm == DrawMode.Normal)
                 {
@@ -266,9 +301,15 @@ namespace Dataset3D
                     GL.Enable(EnableCap.Lighting);
                 }
 
-                var oi = obj_items[i];
+                oi.frame_info.no_frame = false;
+                oi.frame_info.no_frame |= oi.no_frame;
+                oi.frame_info.no_frame |= oi.frame_info.distance > maxDistFromCam;
+
+                if (obstacles && !oi.frame_info.no_frame)
+                    oi.frame_info.no_frame |= !FullyVisibleXY(oi, obj_items2);
 
                 oi.Draw(dm, P);
+
                 if (onObjDraw != null)
                 {
                     onObjDraw(oi);
@@ -276,6 +317,78 @@ namespace Dataset3D
             }
 
             GL.PopMatrix();
+        }
+
+        public bool FullyVisibleXY(ObjItem oi, List<ObjItem> others)
+        {
+            for (int i = 0; i < others.Count; i++)
+            {
+                var oi2 = others[i];
+                if (oi2 == oi ||
+#warning maybe use another flag to check for ground plane
+                    oi2.draw_always) 
+                    continue;
+                if (oi.frame_info.distance < oi2.frame_info.distance)
+                    continue;
+
+                var AllScale = P.GlobalScale*oi.InPlaceScale * oi.mesh.Scale[0];
+                var sz = oi2.mesh.Radius * AllScale*oi2.k_sz_xy;
+
+                var ang_w_obst = Math.Atan((sz / 2) / oi2.frame_info.distance);
+                var ang_obst = Math.Atan(oi2.frame_info.dy / oi2.frame_info.dx);
+                var ang_obj= Math.Atan(oi.frame_info.dy / oi.frame_info.dx);
+
+                var da = ang_obst - ang_obj;
+
+                if (Math.Abs(da) < ang_w_obst)
+                    return false;
+            }
+            return true;
+        }
+
+        //returns a list of visible objects
+        public List<ObjItem> FilterObjectsInFOV(CamParams cp)
+        {
+            var res = new List<ObjItem>();
+
+            for (int i = 0; i < obj_items.Count; i++)
+            {
+                var oi = obj_items[i];
+
+                var T = oi.GetTransform(P);
+
+                float dx = 0, dy = 0, d = 0;
+                if (!oi.draw_always)
+                {
+                    dx = T.M41 - cp.camPos.X;
+                    dy = T.M42 - cp.camPos.Y;
+
+                    d = (float)Math.Sqrt(dx * dx + dy * dy);
+
+                    if (d > cp.vp.farPlane)
+                    {
+                        oi.frame_info.no_frame = true;
+                        continue;
+                    }
+
+                    float ang2 = (float)Math.Atan2(dy, dx);
+                    var da = ang2 - cp.camAngle;
+                    Helper.NormalizeAng(ref da);
+
+                    if (Math.Abs(da) > cp.vp.fovRadians)
+                    {
+                        oi.frame_info.no_frame = true;
+                        continue;
+                    }
+                }
+
+                oi.frame_info.dx = dx;
+                oi.frame_info.dy = dy;
+                oi.frame_info.distance = d;
+
+                res.Add(oi);
+            }
+            return res;
         }
 
         private static void InitLight(float[] pos)

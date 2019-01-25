@@ -11,12 +11,17 @@ namespace Dataset3D
         public float scale;
         public float[] pos;
         public float kframe;
+        public bool no_frame;
+        public bool draw_always;
+        public float k_sz_xy;
+
         public ObjLine()
         {
             rot = new float[] { 0, 0, 0 };
             scale = 1;
             pos = new float[] { 0, 0, 0 };
             kframe = 1;
+            k_sz_xy = 1;
         }
     }
     public class ObjectSettings

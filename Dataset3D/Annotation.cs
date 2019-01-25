@@ -23,15 +23,27 @@ namespace Dataset3D
 
         public Vector2 GetCenter() { return new Vector2((xmin + xmax) / 2, (ymin + ymax) / 2); }
 
-        public string GetYOLORegion(float W, float H)
+        public string GetYOLORegion(float W, float H, Dictionary<int, int> mapping)
         {
             var cx = (xmin + xmax) / 2;
             var dx = (xmax - xmin);
             var cy = (ymin + ymax) / 2;
             var dy = (ymax - ymin);
 
+            cx /= W;
+            cy /= H;
+            dx /= W;
+            dy /= H;
+
+            var k = 0;// 0.1f;
+            if (cx < -k || cy < -k || cx > 1 + k || cy > 1 + k)
+                return null;
+
+            var label_id2 = label_id;
+            if(mapping!=null) if (mapping.ContainsKey(label_id)) label_id2 = mapping[label_id];
+
             return string.Format(CultureInfo.InvariantCulture, "{0} {1:F4} {2:F4} {3:F4} {4:F4}",
-               label_id, cx / W, cy / H, dx / W, dy / H);
+               label_id2, cx, cy, dx, dy);
         }
     }
     public class Annotation

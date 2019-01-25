@@ -72,6 +72,17 @@
             this.nud_tint2 = new System.Windows.Forms.NumericUpDown();
             this.label9 = new System.Windows.Forms.Label();
             this.cb_pause_draw = new System.Windows.Forms.CheckBox();
+            this.label10 = new System.Windows.Forms.Label();
+            this.tb_cam_pos = new System.Windows.Forms.TextBox();
+            this.tb_cam_angle = new System.Windows.Forms.TextBox();
+            this.label11 = new System.Windows.Forms.Label();
+            this.nud_max_det_dist = new System.Windows.Forms.NumericUpDown();
+            this.label12 = new System.Windows.Forms.Label();
+            this.tb_map_ids = new System.Windows.Forms.TextBox();
+            this.label13 = new System.Windows.Forms.Label();
+            this.bt_save_scr = new System.Windows.Forms.Button();
+            this.nud_ind_scr = new System.Windows.Forms.NumericUpDown();
+            this.cb_rec_scr = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.nud_tint)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_max_images)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_ptex)).BeginInit();
@@ -79,6 +90,8 @@
             ((System.ComponentModel.ISupportInitialize)(this.nud_cam_speed)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_cam)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_tint2)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nud_max_det_dist)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nud_ind_scr)).BeginInit();
             this.SuspendLayout();
             // 
             // timer1
@@ -92,7 +105,7 @@
             this.rtb_regions.Font = new System.Drawing.Font("Microsoft Sans Serif", 7.2F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.rtb_regions.Location = new System.Drawing.Point(584, 32);
             this.rtb_regions.Name = "rtb_regions";
-            this.rtb_regions.Size = new System.Drawing.Size(262, 346);
+            this.rtb_regions.Size = new System.Drawing.Size(262, 302);
             this.rtb_regions.TabIndex = 1;
             this.rtb_regions.Text = "";
             // 
@@ -235,7 +248,7 @@
             // rb_simple
             // 
             this.rb_simple.AutoSize = true;
-            this.rb_simple.Location = new System.Drawing.Point(643, 383);
+            this.rb_simple.Location = new System.Drawing.Point(644, 377);
             this.rb_simple.Margin = new System.Windows.Forms.Padding(2);
             this.rb_simple.Name = "rb_simple";
             this.rb_simple.Size = new System.Drawing.Size(69, 17);
@@ -247,7 +260,7 @@
             // 
             this.rb_xml.AutoSize = true;
             this.rb_xml.Checked = true;
-            this.rb_xml.Location = new System.Drawing.Point(729, 382);
+            this.rb_xml.Location = new System.Drawing.Point(730, 376);
             this.rb_xml.Margin = new System.Windows.Forms.Padding(2);
             this.rb_xml.Name = "rb_xml";
             this.rb_xml.Size = new System.Drawing.Size(47, 17);
@@ -334,7 +347,7 @@
             // cb_hide
             // 
             this.cb_hide.AutoSize = true;
-            this.cb_hide.Location = new System.Drawing.Point(534, 8);
+            this.cb_hide.Location = new System.Drawing.Point(682, 7);
             this.cb_hide.Name = "cb_hide";
             this.cb_hide.Size = new System.Drawing.Size(48, 17);
             this.cb_hide.TabIndex = 23;
@@ -363,22 +376,23 @@
             // 
             // tb_scene
             // 
-            this.tb_scene.Location = new System.Drawing.Point(127, 457);
+            this.tb_scene.Location = new System.Drawing.Point(127, 455);
             this.tb_scene.Margin = new System.Windows.Forms.Padding(2);
             this.tb_scene.Name = "tb_scene";
-            this.tb_scene.Size = new System.Drawing.Size(358, 20);
+            this.tb_scene.Size = new System.Drawing.Size(126, 20);
             this.tb_scene.TabIndex = 26;
             this.tb_scene.Text = "big_forest";
             // 
             // cb_move
             // 
             this.cb_move.AutoSize = true;
-            this.cb_move.Location = new System.Drawing.Point(480, 8);
+            this.cb_move.Location = new System.Drawing.Point(628, 7);
             this.cb_move.Name = "cb_move";
             this.cb_move.Size = new System.Drawing.Size(53, 17);
             this.cb_move.TabIndex = 27;
             this.cb_move.Text = "Move";
             this.cb_move.UseVisualStyleBackColor = true;
+            this.cb_move.CheckedChanged += new System.EventHandler(this.cb_move_CheckedChanged);
             // 
             // lb_frame
             // 
@@ -394,7 +408,7 @@
             this.cb_file_world.AutoSize = true;
             this.cb_file_world.Checked = true;
             this.cb_file_world.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cb_file_world.Location = new System.Drawing.Point(509, 461);
+            this.cb_file_world.Location = new System.Drawing.Point(509, 457);
             this.cb_file_world.Name = "cb_file_world";
             this.cb_file_world.Size = new System.Drawing.Size(73, 17);
             this.cb_file_world.TabIndex = 29;
@@ -408,7 +422,7 @@
             0,
             0,
             65536});
-            this.nud_cam_speed.Location = new System.Drawing.Point(411, 5);
+            this.nud_cam_speed.Location = new System.Drawing.Point(559, 4);
             this.nud_cam_speed.Maximum = new decimal(new int[] {
             1,
             0,
@@ -432,7 +446,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(340, 8);
+            this.label6.Location = new System.Drawing.Point(488, 7);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(62, 13);
             this.label6.TabIndex = 30;
@@ -575,18 +589,160 @@
             // cb_pause_draw
             // 
             this.cb_pause_draw.AutoSize = true;
-            this.cb_pause_draw.Location = new System.Drawing.Point(770, 6);
+            this.cb_pause_draw.Location = new System.Drawing.Point(770, 8);
             this.cb_pause_draw.Name = "cb_pause_draw";
             this.cb_pause_draw.Size = new System.Drawing.Size(56, 17);
             this.cb_pause_draw.TabIndex = 42;
             this.cb_pause_draw.Text = "Pause";
             this.cb_pause_draw.UseVisualStyleBackColor = true;
             // 
+            // label10
+            // 
+            this.label10.AutoSize = true;
+            this.label10.Location = new System.Drawing.Point(10, 542);
+            this.label10.Name = "label10";
+            this.label10.Size = new System.Drawing.Size(74, 13);
+            this.label10.TabIndex = 43;
+            this.label10.Text = "Cam Pos (mm)";
+            // 
+            // tb_cam_pos
+            // 
+            this.tb_cam_pos.Location = new System.Drawing.Point(89, 538);
+            this.tb_cam_pos.Margin = new System.Windows.Forms.Padding(2);
+            this.tb_cam_pos.Name = "tb_cam_pos";
+            this.tb_cam_pos.Size = new System.Drawing.Size(358, 20);
+            this.tb_cam_pos.TabIndex = 44;
+            // 
+            // tb_cam_angle
+            // 
+            this.tb_cam_angle.Location = new System.Drawing.Point(566, 538);
+            this.tb_cam_angle.Margin = new System.Windows.Forms.Padding(2);
+            this.tb_cam_angle.Name = "tb_cam_angle";
+            this.tb_cam_angle.Size = new System.Drawing.Size(280, 20);
+            this.tb_cam_angle.TabIndex = 46;
+            // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(457, 542);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(99, 13);
+            this.label11.TabIndex = 45;
+            this.label11.Text = "Cam XY Angle (rad)";
+            // 
+            // nud_max_det_dist
+            // 
+            this.nud_max_det_dist.Increment = new decimal(new int[] {
+            1000,
+            0,
+            0,
+            0});
+            this.nud_max_det_dist.Location = new System.Drawing.Point(356, 3);
+            this.nud_max_det_dist.Maximum = new decimal(new int[] {
+            1000000,
+            0,
+            0,
+            0});
+            this.nud_max_det_dist.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.nud_max_det_dist.Name = "nud_max_det_dist";
+            this.nud_max_det_dist.Size = new System.Drawing.Size(102, 20);
+            this.nud_max_det_dist.TabIndex = 48;
+            this.nud_max_det_dist.Value = new decimal(new int[] {
+            20000,
+            0,
+            0,
+            0});
+            // 
+            // label12
+            // 
+            this.label12.AutoSize = true;
+            this.label12.Location = new System.Drawing.Point(218, 6);
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(122, 13);
+            this.label12.TabIndex = 47;
+            this.label12.Text = "Max Detection Dist (mm)";
+            // 
+            // tb_map_ids
+            // 
+            this.tb_map_ids.Location = new System.Drawing.Point(638, 339);
+            this.tb_map_ids.Margin = new System.Windows.Forms.Padding(2);
+            this.tb_map_ids.Name = "tb_map_ids";
+            this.tb_map_ids.Size = new System.Drawing.Size(208, 20);
+            this.tb_map_ids.TabIndex = 49;
+            this.tb_map_ids.Text = "0=0, 1=1";
+            // 
+            // label13
+            // 
+            this.label13.AutoSize = true;
+            this.label13.Location = new System.Drawing.Point(588, 342);
+            this.label13.Name = "label13";
+            this.label13.Size = new System.Drawing.Size(45, 13);
+            this.label13.TabIndex = 50;
+            this.label13.Text = "Map Ids";
+            // 
+            // bt_save_scr
+            // 
+            this.bt_save_scr.Location = new System.Drawing.Point(258, 455);
+            this.bt_save_scr.Name = "bt_save_scr";
+            this.bt_save_scr.Size = new System.Drawing.Size(100, 23);
+            this.bt_save_scr.TabIndex = 51;
+            this.bt_save_scr.Text = "Save Screnshot";
+            this.bt_save_scr.UseVisualStyleBackColor = true;
+            this.bt_save_scr.Click += new System.EventHandler(this.bt_save_scr_Click);
+            // 
+            // nud_ind_scr
+            // 
+            this.nud_ind_scr.Location = new System.Drawing.Point(364, 454);
+            this.nud_ind_scr.Maximum = new decimal(new int[] {
+            10000,
+            0,
+            0,
+            0});
+            this.nud_ind_scr.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            -2147483648});
+            this.nud_ind_scr.Name = "nud_ind_scr";
+            this.nud_ind_scr.ReadOnly = true;
+            this.nud_ind_scr.Size = new System.Drawing.Size(59, 20);
+            this.nud_ind_scr.TabIndex = 52;
+            this.nud_ind_scr.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            -2147483648});
+            // 
+            // cb_rec_scr
+            // 
+            this.cb_rec_scr.AutoSize = true;
+            this.cb_rec_scr.Location = new System.Drawing.Point(438, 456);
+            this.cb_rec_scr.Name = "cb_rec_scr";
+            this.cb_rec_scr.Size = new System.Drawing.Size(46, 17);
+            this.cb_rec_scr.TabIndex = 53;
+            this.cb_rec_scr.Text = "Rec";
+            this.cb_rec_scr.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(860, 540);
+            this.ClientSize = new System.Drawing.Size(860, 591);
+            this.Controls.Add(this.cb_rec_scr);
+            this.Controls.Add(this.nud_ind_scr);
+            this.Controls.Add(this.bt_save_scr);
+            this.Controls.Add(this.label13);
+            this.Controls.Add(this.tb_map_ids);
+            this.Controls.Add(this.nud_max_det_dist);
+            this.Controls.Add(this.label12);
+            this.Controls.Add(this.tb_cam_angle);
+            this.Controls.Add(this.label11);
+            this.Controls.Add(this.tb_cam_pos);
+            this.Controls.Add(this.label10);
             this.Controls.Add(this.cb_pause_draw);
             this.Controls.Add(this.label9);
             this.Controls.Add(this.nud_tint2);
@@ -639,6 +795,8 @@
             ((System.ComponentModel.ISupportInitialize)(this.nud_cam_speed)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_cam)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nud_tint2)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nud_max_det_dist)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nud_ind_scr)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -688,6 +846,17 @@
         private System.Windows.Forms.NumericUpDown nud_tint2;
         private System.Windows.Forms.Label label9;
         private System.Windows.Forms.CheckBox cb_pause_draw;
+        private System.Windows.Forms.Label label10;
+        private System.Windows.Forms.TextBox tb_cam_pos;
+        private System.Windows.Forms.TextBox tb_cam_angle;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.NumericUpDown nud_max_det_dist;
+        private System.Windows.Forms.Label label12;
+        private System.Windows.Forms.TextBox tb_map_ids;
+        private System.Windows.Forms.Label label13;
+        private System.Windows.Forms.Button bt_save_scr;
+        private System.Windows.Forms.NumericUpDown nud_ind_scr;
+        private System.Windows.Forms.CheckBox cb_rec_scr;
     }
 }
 

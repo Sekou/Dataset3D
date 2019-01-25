@@ -62,6 +62,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Annotation.cs" />
+    <Compile Include="CamPoses.cs" />
     <Compile Include="Form1.cs">
       <SubType>Form</SubType>
     </Compile>
