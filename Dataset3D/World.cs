@@ -15,7 +15,8 @@ namespace Dataset3D
     public class ObjItem
     {
         public Matrix4 ShiftTransform;
-        public Matrix4 RotTransform;
+        public Matrix4 RotTransform = Matrix4.Identity;
+        public Matrix4 RotTransform2 = Matrix4.Identity; //modified rotation during dataset generation
         public float InPlaceScale=1;
         public ObjMesh mesh;
 
@@ -34,9 +35,11 @@ namespace Dataset3D
         public bool no_frame { get; set; } //doesn't require classification
         public bool draw_always { get; set; } //draw even if center goes out of camera FOV
         public float kframe { get; set; } //frame size multiplier
+        public float krot { get; set; } //maximum rotation axis deviation from vertical
         public float k_sz_xy { get; set; } //ratio of xy size to maximum object size (for trees obstacle calculation)
 
-        public ObjItem() { }
+        public ObjItem() {
+        }
         public ObjItem(string line, FileManager fileManager, World world)
         {
             var arr = line.Split(' ');
@@ -65,11 +68,12 @@ namespace Dataset3D
             photo_color = ColorTranslator.FromHtml(arr[arr.Length - 1]);
 
 #warning copy all other transform.json fields from mesh into here as in ObjCreator line 230
-            no_frame = ((ObjLine)mesh.UserObject).no_frame;
-            draw_always = ((ObjLine)mesh.UserObject).draw_always;
-            kframe = ((ObjLine)mesh.UserObject).kframe;
-            k_sz_xy = ((ObjLine)mesh.UserObject).k_sz_xy;
-
+            var OL = (ObjLine)mesh.UserObject;
+            no_frame = OL.no_frame;
+            draw_always = OL.draw_always;
+            kframe = OL.kframe;
+            krot = OL.krot;
+            k_sz_xy = OL.k_sz_xy;
         }
 
         public Matrix4 GetTransform(WorldParams P)
@@ -80,11 +84,12 @@ namespace Dataset3D
             else res = Matrix4.Identity;
 
             res = ShiftTransform * res;
-            res = RotTransform * res;
-            if (P != null) res = P.GlobalRotTransform * res;
+            res = RotTransform2 * RotTransform * res;
+
+            if (P != null)
+                res = P.GlobalRotTransform * res;
 
             return res;
-
         }
         public void Draw(DrawMode dm, WorldParams P)
         {
@@ -92,6 +97,7 @@ namespace Dataset3D
 
             var T = GetTransform(P);
             GL.MultMatrix(ref T);
+
             //if (P!=null) GL.MultMatrix(ref P.GlobalShiftTransform);
             //GL.MultMatrix(ref ShiftTransform);
             //GL.MultMatrix(ref RotTransform);
@@ -103,13 +109,27 @@ namespace Dataset3D
             SelectMaterial(mesh.IsTextured, color, dm);
 
             var AllScale = InPlaceScale * P.GlobalScale;
-            mesh.Draw(disable_tex: dm != DrawMode.Normal, scale : AllScale);
+
+            bool needscale = AllScale != mesh.Scale[0];
+            if (needscale)
+            {
+#warning not thread safe, frequent data manipulation
+
+                mesh.Scale =new Vector3(AllScale, AllScale, AllScale);
+                mesh.RecalculateGeomParams();
+            }
+
+            mesh.Draw(disable_tex: dm != DrawMode.Normal);
+            
 
             if (!frame_info.no_frame)
-            {
+            { 
                 //frame_info = new ObjItemFrameInfo();
+
+                var p = mesh.Center;
+
                 frame_info.center = OpenTK.Extra.Helper.from3Dto2D(Matrix4.Zero, Matrix4.Zero,
-                    null, mesh.Center * AllScale * mesh.Scale[0], out frame_info.k_3d_to_px);
+                    null, p, out frame_info.k_3d_to_px);
 
                 frame_info.k_3d_to_px *= kframe;
                 frame_info.region = GetObjectRegion(P, frame_info);
@@ -160,9 +180,7 @@ namespace Dataset3D
             //name = Regex.Replace(name, @"^[\d]+[_\-]", "");
             or.name = "" + label;
 
-            float sc = (mesh.Scale[0] + mesh.Scale[1] + mesh.Scale[2])/ 3;
-            float AllScale = sc * InPlaceScale * P.GlobalScale; // * 0.01f;
-            float width3d = mesh.Radius * AllScale * 2;
+            float width3d = mesh.Radius * 2;
 
             var kx = width3d * frame_info.k_3d_to_px;
             var ky = width3d * frame_info.k_3d_to_px;
@@ -193,8 +211,6 @@ namespace Dataset3D
         public float GlobalScale = 1;
         public Matrix4 GlobalShiftTransform = Matrix4.Identity;
         public Matrix4 GlobalRotTransform = Matrix4.Identity;
-        public float nearPlane;
-        public float farPlane;
         public float[] light_pos;
         public Color background_color;
 
@@ -217,9 +233,6 @@ namespace Dataset3D
                 x=>float.Parse(x, IC));
             var T = Array.ConvertAll(dict["shift_default"].Split(' '),
                 x => float.Parse(x, IC));
-
-            farPlane = float.Parse(dict["far_plane"], IC)*k;
-            nearPlane = float.Parse(dict["near_plane"], IC)*k;
 
             var kpi = (float)(Math.PI / 180);
             GlobalShiftTransform = Matrix4.CreateTranslation(T[0] * GlobalScale, T[1] * GlobalScale, T[2] * GlobalScale) ;
@@ -331,7 +344,7 @@ namespace Dataset3D
                 if (oi.frame_info.distance < oi2.frame_info.distance)
                     continue;
 
-                var AllScale = P.GlobalScale*oi.InPlaceScale * oi.mesh.Scale[0];
+                var AllScale = P.GlobalScale * oi.InPlaceScale;
                 var sz = oi2.mesh.Radius * AllScale*oi2.k_sz_xy;
 
                 var ang_w_obst = Math.Atan((sz / 2) / oi2.frame_info.distance);
@@ -360,22 +373,22 @@ namespace Dataset3D
                 float dx = 0, dy = 0, d = 0;
                 if (!oi.draw_always)
                 {
-                    dx = T.M41 - cp.camPos.X;
-                    dy = T.M42 - cp.camPos.Y;
+                    dx = T.M41 - cp.pCenter.X;
+                    dy = T.M42 - cp.pCenter.Y;
 
                     d = (float)Math.Sqrt(dx * dx + dy * dy);
 
-                    if (d > cp.vp.farPlane)
+                    if (d > cp.farPlane)
                     {
                         oi.frame_info.no_frame = true;
                         continue;
                     }
 
                     float ang2 = (float)Math.Atan2(dy, dx);
-                    var da = ang2 - cp.camAngle;
+                    var da = ang2 - cp.camYaw();
                     Helper.NormalizeAng(ref da);
 
-                    if (Math.Abs(da) > cp.vp.fovRadians)
+                    if (Math.Abs(da) > cp.fovRadians())
                     {
                         oi.frame_info.no_frame = true;
                         continue;

@@ -43,7 +43,6 @@ namespace Dataset3D
                             break;
                         }
                     }
-                    obj.RecalculateGeomParams();
                     objects[f.Name] = obj;
                 }
             }
@@ -105,6 +104,9 @@ namespace Dataset3D
             var kpi = (float)Math.PI / 180;
             m.Rotation = new Vector3(l.rot[0] * kpi, l.rot[1] * kpi, l.rot[2] * kpi);
             m.Position = new Vector3(l.pos[0], l.pos[1], l.pos[2]);
+
+            m.RecalculateGeomParams();
+            m.FixTransform(); //сбрасываем масштаб и прочие преобразования (сохраняя положения вершин) чтоб упростить дльнейшие расчеты
         }
     }
 
@@ -210,7 +212,7 @@ namespace Dataset3D
         } 
         #endregion
 
-        public World GetWorld(int iteration, int num_objs, ViewportParams vp)
+        public World GetWorld(int iteration, int num_objs, CamParams vp)
         {
             ResetRandom(iteration);
 
@@ -224,21 +226,16 @@ namespace Dataset3D
             for (int i = 0; i < lst.Count; i++)
             {
                 var P = lst[i];
-
-                //ROTATION AND TRANSLATION
-                var axis = new Vector3(r2(), r2(), r2());
-                var q = Quaternion.FromAxisAngle(axis, (float)Math.PI * r2());
-                q.Normalize();
-
+                
                 var oi = new ObjItem();
-                oi.RotTransform = Matrix4.CreateFromQuaternion(q);
-                oi.ShiftTransform = Matrix4.CreateTranslation(P[0], P[1], P[2]);
 
                 //MESH AND LABELS
                 oi.type = rnd.Next(fileManager.objects.Count);
                 oi.filename = fileManager.obj_filenames[oi.type];
 
                 var o = fileManager.objects[oi.filename];
+                var OL = (ObjLine)o.UserObject;
+
                 oi.mesh = o;
 
                 oi.label_id = fileManager.label_ids[oi.label];
@@ -248,10 +245,22 @@ namespace Dataset3D
                 oi.segm_color = Helper.GetColorById(color_type);
                 oi.photo_color = Color.FromArgb(255, RNDC, RNDC, RNDC);
 
-                oi.no_frame = ((ObjLine)oi.mesh.UserObject).no_frame;
-                oi.draw_always = ((ObjLine)oi.mesh.UserObject).draw_always;
-                oi.kframe = ((ObjLine)oi.mesh.UserObject).kframe;
-                oi.k_sz_xy = ((ObjLine)oi.mesh.UserObject).k_sz_xy;
+                oi.no_frame = OL.no_frame;
+                oi.draw_always = OL.draw_always;
+                oi.kframe = OL.kframe;
+                oi.krot = OL.krot;
+                oi.k_sz_xy = OL.k_sz_xy;
+
+                //ROTATION AND TRANSLATION
+                var axis0 = new Vector3(0, 0, 1);
+                var axis = new Vector3(r2(), r2(), r()).Normalized();
+                axis = oi.krot * axis + (1 - oi.krot) * axis0; //ограничение вращения
+                //axis.Normalize();
+
+                var q = Quaternion.FromAxisAngle(axis, (float)Math.PI * r2());
+                q.Normalize();
+                oi.RotTransform2 = Matrix4.CreateFromQuaternion(q);
+                oi.ShiftTransform = Matrix4.CreateTranslation(P[0], P[1], P[2]);
 
                 world.obj_items.Add(oi);
             }

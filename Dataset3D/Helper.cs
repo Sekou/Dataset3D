@@ -129,52 +129,20 @@ namespace Dataset3D
         {
             b.Save(path, jgpEncoder, GetJpgQualityParams(90));
         }
+
         public static void SavePNG(Bitmap b, string path)
         {
             b.Save(path, ImageFormat.Png);
         }
+
+        public static Vector4 MakeVec4(Vector3 v)
+        {
+            return new Vector4(v[0], v[1], v[2], 1);
+        }
+
+        public static Vector3 MakeVec3(Vector4 v)
+        {
+            return new Vector3(v[0], v[1], v[2]);
+        }
     }
-
-    public class HiPerfTimer
-    {
-        [DllImport("Kernel32.dll")]
-        private static extern bool QueryPerformanceCounter(out long lpPerformanceCount);
-
-        [DllImport("Kernel32.dll")]
-        private static extern bool QueryPerformanceFrequency(out long lpFrequency);
-
-        private long startTime, stopTime;
-        private long freq;
-
-        // Constructor
-        public HiPerfTimer()
-        {
-            startTime = 0; stopTime = 0;
-            if (QueryPerformanceFrequency(out freq) == false)
-            {
-                // high-performance counter not supported
-                throw new System.ComponentModel.Win32Exception();
-            }
-        }
-
-        // Start the timer
-        public void Start()
-        {
-            // lets do the waiting threads their work
-            Thread.Sleep(0);
-            QueryPerformanceCounter(out startTime);
-        }
-
-        // Stop the timer
-        public float Stop()
-        {
-            QueryPerformanceCounter(out stopTime);
-            return (float)Duration;
-        }
-
-        // Returns the duration of the timer (in seconds)
-        public double Duration
-        { get { return (double)(stopTime - startTime) / (double)freq; } }
-    }
-
 }

@@ -1,4 +1,5 @@
-﻿using OpenTK;
+﻿using Newtonsoft.Json;
+using OpenTK;
 using OpenTK.Extra;
 using OpenTK.Graphics.OpenGL;
 using System;
@@ -53,8 +54,8 @@ namespace Dataset3D
                         DrawAllObjects(t, DrawMode.Normal, random_world, false);
                         w = random_world;
                     }
-
-                    annotation = GetAnnotation(w, out annot_filename, out annot_ext);
+                    if(w!=null)
+                        annotation = GetAnnotation(w, out annot_filename, out annot_ext);
                 }
                 var dt=hpt.Stop();
                 smooth_dt += 0.1f * (dt - smooth_dt);
@@ -64,30 +65,63 @@ namespace Dataset3D
             nud_cam_speed_ValueChanged(null, null);
         }
         //Camera and viewport params
-        public class ViewportParams
-        {
-            public float nearPlane = 2;
-            public float farPlane = 5000;
-            public float fovRadians;
-            public float aspect;
-            public float camDist = 700;
-            public float wFarPlane;
-            public float hFarPlane;
-
-            public ViewportParams GetCopy()
-            {
-                return (ViewportParams)MemberwiseClone();
-            }
-        }
-
-        //Camera updated params
         public class CamParams
         {
-            public ViewportParams vp;
-            public Vector3 camPos;
-            public float camAngle;
-            public float maxDetectionDist;
+            public float nearPlane;
+            public float farPlane;
+            public float fovDegrees;
+            public float[] pCenterArr { get { return new[] { pCenter.X, pCenter.Y, pCenter.Z }; } set { pCenter = new Vector3(value[0], value[1], value[2]); } }
+            public float[] pLookAtArr { get { return new[] { pLookAt.X, pLookAt.Y, pLookAt.Z }; } set { pLookAt = new Vector3(value[0], value[1], value[2]); } }
+
+            public float detectDist;
+
+            [NonSerialized]
+            public Vector3 pCenter;
+            [NonSerialized]
+            public Vector3 pLookAt;
+            [NonSerialized]
+            public float aspect;
+            [NonSerialized]
+            public float wFarPlane;
+            [NonSerialized]
+            public float hFarPlane;
+
+            public float fovRadians() { return fovDegrees / 180 * (float)Math.PI; }
+
+            public void Update(float screenW, float screenH)
+            {
+                aspect = screenW / screenH;
+                var fov_half = fovRadians() / 2;
+                wFarPlane = 1.05f * (float)(2 * farPlane * Math.Tan(fov_half) * aspect);
+                hFarPlane = wFarPlane / aspect;
+            }
+
+            public void SetCamPose(Vector3 pCenter, Vector3 pLookAt, Control3D c3d)
+            {
+                this.pCenter = pCenter; this.pLookAt = pLookAt;
+                var modelview = Matrix4.LookAt(pCenter, pLookAt, new Vector3(0, 0, 1));
+                c3d.viewPoint.setView(pCenter, pLookAt);
+                c3d.UpdateModelviewMat();
+
+                GL.MatrixMode(MatrixMode.Modelview);
+                GL.LoadMatrix(ref modelview);
+                GL.PushMatrix();
+            }
+
+            public CamParams GetCopy()
+            {
+                return (CamParams)MemberwiseClone();
+            }
+
+            internal float camYaw()
+            {
+                var res = (float)Math.Atan2(
+                    pLookAt[1]-pCenter[1], 
+                    pLookAt[0]-pCenter[0]);
+                return res;
+            }
         }
+        
         private void bt_reset_Click(object sender, EventArgs e)
         {
             loaded = true;
@@ -98,15 +132,7 @@ namespace Dataset3D
             b = new Bitmap(control3D1.Width, control3D1.Height);
 
             oc = new ObjectCreator("meshes", "background", b.Width, b.Height);
-
-            vp = new ViewportParams();
-            vp.aspect = control3D1.Width / (float)control3D1.Height;
-            vp.fovRadians = (float)(80 * Math.PI / 180);
-            var fov2 = vp.fovRadians / 2;
-            // L/2 / far = tn(fov2)
-            // L=2*far*tn(fov2)
-            vp.wFarPlane = 1.05f * (float)(2 * vp.farPlane * Math.Tan(fov2) * vp.aspect);
-            vp.hFarPlane = vp.wFarPlane / vp.aspect;
+            file_world = null;
 
             GL.Enable(EnableCap.Blend);
 
@@ -116,7 +142,12 @@ namespace Dataset3D
 
             lb_frame.Text = "...";
 
-            InitCamera(vp);
+            InitCameraSmart();
+            
+
+            //control3D1.DrawAll(false, false, false, false);
+
+            //control3D1.DrawAll();
         }
 
         bool loaded = false;
@@ -131,31 +162,28 @@ namespace Dataset3D
 
         Textures texs;
 
+        CamParams cp;
+
         //ИНИЦИАЛИЗАЦИЯ
         private void control3D1_Load(object sender, EventArgs e)
         {
             bt_reset_Click(null, null);
         }       
 
-        ViewportParams vp;
-
-        CamParams cp;
-
-        private void InitCamera(ViewportParams vp)
+        private void InitCamera(string cam_params_file)
         {
-            cp = new CamParams() { vp = vp };
+            //camera params
+            var s = File.ReadAllText(cam_params_file);
+            cp = JsonConvert.DeserializeObject<CamParams>(s);
+            cp.Update(control3D1.Width, control3D1.Height);
+
             Matrix4 p = Matrix4.CreatePerspectiveFieldOfView(
-                vp.fovRadians, vp.aspect, vp.nearPlane, vp.farPlane);
+                cp.fovRadians(), cp.aspect, cp.nearPlane, cp.farPlane);
             GL.MatrixMode(MatrixMode.Projection);
             GL.LoadMatrix(ref p);
             GL.PushMatrix();
 
-            Matrix4 modelview = Matrix4.LookAt
-                (vp.camDist, 0, 0, 0, 0, 0, 0, 0, 1);
-
-            GL.MatrixMode(MatrixMode.Modelview);
-            GL.LoadMatrix(ref modelview);
-            GL.PushMatrix();
+            cp.SetCamPose(cp.pCenter, cp.pLookAt, control3D1);
         }
 
         int t=0;
@@ -178,12 +206,13 @@ namespace Dataset3D
             tb_projm.Text = projm.ToString();
 
             var mvm2 = mvm.Inverted();
-            var p = cp.camPos = new Vector3(mvm2.M41, mvm2.M42, mvm2.M43);
-            cp.maxDetectionDist = (float)nud_max_det_dist.Value;
+            var p = cp.pCenter = new Vector3(mvm2.M41, mvm2.M42, mvm2.M43);
+            cp.detectDist = (float)nud_max_det_dist.Value;
             tb_cam_pos.Text = p.ToString();
 
 #warning non-explained formula
-            var a = cp.camAngle = (float)Math.Atan2(-mvm.M23, -mvm.M21);
+            cp.pLookAt = cp.pCenter + new Vector3(-mvm.M21, mvm.M11, 0);
+            var a = cp.camYaw();
             tb_cam_angle.Text = a.ToString("F3", CultureInfo.InvariantCulture);
 
             if (cb_move.Checked)
@@ -199,7 +228,7 @@ namespace Dataset3D
                         bt_save_scr_Click(null, null);
                     }
                 }
-                return;
+                //return;
             }
 
             //return;
@@ -330,14 +359,14 @@ namespace Dataset3D
             
             if (existing_world == null)
             {
-                world = oc.GetWorld(iteration, (int)nud_nobj.Value, vp);
+                world = oc.GetWorld(iteration, (int)nud_nobj.Value, cp);
                 world.backgroung_color = Color.FromArgb(255, oc.RNDC, oc.RNDC, oc.RNDC);
 
                 world.plane = null;
                 if (oc.rnd.NextDouble() < (double)nud_ptex.Value)
                 {
                     world.plane = new Plane(oc.backgrounds.GetRandomTexture(oc.rnd),
-                        vp.wFarPlane, vp.hFarPlane);
+                        cp.wFarPlane, cp.farPlane);
                 }
             }
 
@@ -351,7 +380,7 @@ namespace Dataset3D
                 {
                     //BACKGROUND
 #warning move into PlaneObjItem:ObjectItem
-                    DrawBackground(world, vp);
+                    DrawBackground(world, cp);
                 }
             }
             else if (dm == DrawMode.Segmentation)
@@ -382,15 +411,17 @@ namespace Dataset3D
             return world;
         }
 
-        public void DrawBackground(World world, ViewportParams vp)
+        public void DrawBackground(World world, CamParams vp)
         {
             GL.PushMatrix();
+         
             //GL.LoadIdentity();
-            GL.Translate(-vp.farPlane + vp.camDist + 100, 0, 0);
+            GL.Translate(-vp.farPlane + vp.pCenter[0] + 100, 0, 0);
             //GL.Rotate(90, 0, 0, 1);
             GL.Rotate(90, 0, 1, 0);
             GL.Rotate(90, 0, 0, 1);
-            Plane.DrawTexture(world.plane.tex, vp.wFarPlane, vp.wFarPlane);
+            
+            Plane.DrawTexture(world.plane.tex, vp.wFarPlane, vp.hFarPlane);
             GL.PopMatrix();
         }
 
@@ -442,7 +473,8 @@ namespace Dataset3D
             GL.ReadPixels(0, 0, w, h, OpenTK.Graphics.OpenGL.PixelFormat.DepthComponent, PixelType.Float, depth_arr);
 
             for (int i = 0; i < L; i++)
-                depth_arr[i] = FixDepth(depth_arr[i], vp.nearPlane, vp.farPlane)/ vp.farPlane;
+                depth_arr[i] = FixDepth(depth_arr[i], 
+                    cp.nearPlane, cp.farPlane) / cp.farPlane;
 
             lastDepthMap = Helper.BitmapFromFloatsGrayscale(depth_arr, w, h);
             lastDepthMap.RotateFlip(RotateFlipType.RotateNoneFlipY);
@@ -486,20 +518,11 @@ namespace Dataset3D
             // UpdateNudIndScreenshot(false, false);
             nud_ind_scr.Value = -1;
 
-            InitCamera2();
-
+            InitCameraSmart();
 
             cam_poses = new CamPoses();
         }
-
-        private void InitCamera2()
-        {
-            var vp2 = vp.GetCopy();
-            vp2.farPlane = file_world.P.farPlane;
-            vp2.nearPlane = file_world.P.nearPlane;
-            InitCamera(vp2);
-        }
-
+        
         private void nud_cam_speed_ValueChanged(object sender, EventArgs e)
         {
             control3D1.MoveSpeed = (float)nud_cam_speed.Value;
@@ -513,7 +536,7 @@ namespace Dataset3D
                 var ind = (float)nud_cam.Value;
                 if (ind < traj.points.Count)
                 {
-                    traj.SetCamAtTime((float)nud_cam.Value);
+                    traj.SetCamAtTime((float)nud_cam.Value, control3D1, ref cp);
                     DrawAllObjects(-1, DrawMode.Normal, file_world, false);
                     control3D1.DrawAll(false, false, false, false);
                     Application.DoEvents();
@@ -537,7 +560,7 @@ namespace Dataset3D
             int ind = -1;
             for (float t = 0; t <= traj.GetMaxTime(); t+=(float)nud_tint2.Value, ind++)
             {
-                traj.SetCamAtTime(t);
+                traj.SetCamAtTime(t, control3D1, ref cp);
                 nud_cam.Value = (decimal)t;
                 Application.DoEvents();
                 Thread.Sleep(100);
@@ -557,12 +580,16 @@ namespace Dataset3D
 
         private void cb_move_CheckedChanged(object sender, EventArgs e)
         {
-            if (cb_move.Checked)
-                InitCamera2();
-            else
-                InitCamera(vp);
+            //InitCameraSmart();
         }
 
+        private void InitCameraSmart()
+        {
+            if (cb_move.Checked && file_world != null)
+                InitCamera(Path.Combine(tb_scene.Text, "camera.json"));
+            else
+                InitCamera(Path.Combine("meshes", "camera.json"));
+        }
 
         public Dictionary<int, int> GetIndexMapping()
         {

@@ -1,4 +1,5 @@
 ﻿using OpenTK;
+using OpenTK.Extra;
 using OpenTK.Graphics.OpenGL;
 using System;
 using System.Collections.Generic;
@@ -111,18 +112,7 @@ namespace Dataset3D
 
             return m1;
         }
-        public Matrix4 GetCamDirAtPoint(int ind)
-        {
-            if (ind == points.Count - 1) ind--;
-
-            var at = points[ind + 1].p;
-            var eye = points[ind].p;
-
-            var m=GetCamDir(eye, at);
-
-            return m;
-        }
-        public Matrix4 InterpolateCamDir(int ind, float knext)
+        public Vector3[] InterpolateCamDir(int ind, float knext)
         {
             if (ind == points.Count - 1) ind--;
             if (ind == points.Count - 2) ind--;
@@ -134,37 +124,21 @@ namespace Dataset3D
             var eye = p1 + knext * (p2 - p1);
             var at = p2 + knext * (p3 - p2);
 
-            var m=GetCamDir(eye, at);
+            //var m=GetCamDir(eye, at);
 
-            return m;
+            return new Vector3[] { eye * Scale, at * Scale };
         }
-        public Matrix4 InterpolateCamPos(int ind, float knext)
-        {
-            Vector3 v;
-            if (ind >= points.Count - 1) v = points[points.Count - 1].p;
-            else
-            {
-                var p1 = points[ind].p;
-                var p2 = points[ind + 1].p;
-                v = p2 * knext + p1 * (1 - knext);
-            }
 
-            return Matrix4.CreateTranslation(-v * Scale);
-        }
-        public void SetCamAtPoint(float indF)
+        public void SetCamAtPoint(float indF, Control3D c3d, ref Form1.CamParams cp)
         {
             var ind = (int)indF;
 
             var knext = indF - ind;
-            var m = InterpolateCamDir(ind, knext);
-            var m2 = InterpolateCamPos(ind, knext);
+            var pp = InterpolateCamDir(ind, knext);
 
-            var T = m2 * m;
-
-            GL.MatrixMode(MatrixMode.Modelview);
-            GL.LoadMatrix(ref T);
+            cp.SetCamPose(pp[0], pp[1], c3d);
         }
-        public void SetCamAtTime(float time)
+        public void SetCamAtTime(float time, Control3D c3d, ref Form1.CamParams cp)
         {
             int ind = 0;
             float t = float.MinValue;
@@ -183,8 +157,7 @@ namespace Dataset3D
             var d2 = points[ind+1].time - time;
             k = d1 / (d1 + d2);
 
-            SetCamAtPoint(ind + k);
-
+            SetCamAtPoint(ind + k, c3d, ref cp);
         }
     }
 }

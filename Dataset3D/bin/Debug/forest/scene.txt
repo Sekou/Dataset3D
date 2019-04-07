@@ -1,6 +1,4 @@
 units: m
-far_plane: 50
-near_plane: 0.1
 scale_default: 1
 rotate_default: 90 0 0
 shift_default: 0 0 0

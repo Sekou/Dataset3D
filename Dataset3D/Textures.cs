@@ -34,7 +34,7 @@ namespace Dataset3D
             {
                 bool ok = false;
                 if (f.Name.EndsWith(".jpg")) ok=true;
-                else if (!f.Name.EndsWith(".png")) ok=true;
+                else if (f.Name.EndsWith(".png")) ok=true;
                 if (!ok) continue;
 
                 var t = new Texture(f.FullName);

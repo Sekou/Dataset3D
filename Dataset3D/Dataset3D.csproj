@@ -70,6 +70,7 @@
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
     <Compile Include="Helper.cs" />
+    <Compile Include="HiPerfTimer.cs" />
     <Compile Include="ObjectCreator.cs" />
     <Compile Include="ObjectSettings.cs" />
     <Compile Include="Trajectory.cs" />

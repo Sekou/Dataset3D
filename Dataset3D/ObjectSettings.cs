@@ -11,6 +11,7 @@ namespace Dataset3D
         public float scale;
         public float[] pos;
         public float kframe;
+        public float krot;
         public bool no_frame;
         public bool draw_always;
         public float k_sz_xy;
